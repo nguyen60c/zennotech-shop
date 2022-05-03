@@ -1,0 +1,1 @@
+<p class="text-muted text-center">Copy right &copy; {{date('Y')}}</p>
