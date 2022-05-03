@@ -67,9 +67,6 @@
         <?php $count++; ?>
     @endforeach
 
-    @guest
-        <h1>Please login</h1>
-    @endguest
 @endsection
 
 

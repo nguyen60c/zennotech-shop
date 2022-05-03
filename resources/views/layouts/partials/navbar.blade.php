@@ -17,24 +17,20 @@
                        placeholder="Search..." aria-label="Search">
             </form>
 
-            <div class="text-end">
-                <a href=""
-                   class="me-2 text-light">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                </a>
-            </div>
-
             @auth
+                <div class="text-end">
+                    <a href=""
+                       class="me-2 text-light">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </a>
+                </div>
+
                 {{auth()->user()->name}}&nbsp;
                 <div class="text-end" style="margin-left: 10px">
                     <a href="{{ route('logout.perform') }}"
                        class="btn btn-outline-light me-2">Logout</a>
                 </div>
             @endauth
-
-
-
-
 
             @guest
                 <div class="text-end">

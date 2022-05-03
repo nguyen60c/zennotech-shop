@@ -16,10 +16,9 @@ use App\Http\Controllers\admin\permissions\PermissionsController;
 
 Route::group(["namespace" => "App\Http\Controllers"], function () {
 
-    /**
-     * Home Routes
-     */
-    Route::get("/", "home\HomeController@index")->name("home.index");
+    /*Customer Routes*/
+    Route::get("/","user\ProductsController@index")
+        ->name("users.products.index");
 
     /**
      * Guest Routes
@@ -46,9 +45,6 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
          */
         Route::get("/logout", "home\LogoutController@perform")->name("logout.perform");
 
-        /*Customer Routes*/
-        Route::get("/","user\ProductsController@index")
-            ->name("users.products.index");
 
         /*
          * User Routes
