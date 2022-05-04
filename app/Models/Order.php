@@ -9,8 +9,10 @@ class Order extends Model
 {
     use HasFactory;
 
+    protected $table = "order";
+
     public function user(){
         return $this->belongsTo(User::class);
     }
-    
+
 }

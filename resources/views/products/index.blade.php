@@ -30,16 +30,15 @@
                         overflow: hidden;">
                                 {{ $product->name }}</h4>
                             <h5 class="text-danger">${{ number_format($product->price) }}</h5>
-                            {{--                            <form action="{{ route('cart.store') }}" method="post">--}}
-                            <form>
+                            <form action="{{ route('cart.store') }}" method="post">
                                 {{ csrf_field() }}
-                                <input type="hidden" value="{{ $product->id }}" id="id" name="id">
-                                <input type="hidden" value="{{ $product->name }}" id="name" name="name">
-                                <input type="hidden" value="{{ $product->price }}" id="price" name="price">
-                                <input type="hidden" value="{{ $product->image }}"
+                                <input type="hidden" style="display: none" value="{{ $product->id }}" id="id" name="id">
+                                <input type="hidden" style="display: none" value="{{ $product->name }}" id="name" name="name">
+                                <input type="hidden" style="display: none" value="{{ $product->price }}" id="price" name="price">
+                                <input type="hidden" style="display: none" value="{{ $product->image }}"
                                        id="img" name="img">
-                                <input type="hidden" value="{{ $product->slug }}" id="slug" name="slug">
-                                <input type="hidden" value="1" id="quantity" name="quantity">
+                                <input type="hidden" style="display: none" value="{{ $product->slug }}" id="slug" name="slug">
+                                <input type="hidden" style="display: none" value="1" id="quantity" name="quantity">
 
                                 <div class="card-footer" style="background-color: white;">
                                     <div class="row">

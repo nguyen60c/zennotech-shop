@@ -18,8 +18,6 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" />
     @yield("style")
-    <link href="{!! url('assets/bootstrap/css/bootstrap.min.css') !!}" rel="stylesheet">
-    <link href="{!! url('assets/css/signin.css') !!}" rel="stylesheet">
 
     <style>
         .bd-placeholder-img {
@@ -39,8 +37,6 @@
     </style>
 
 
-    <!-- Custom styles for this template -->
-    <link href="signin.css" rel="stylesheet">
 </head>
 
 <body>

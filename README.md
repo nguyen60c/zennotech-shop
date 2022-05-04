@@ -13,7 +13,8 @@ php artisan db:seed --class=CreateAdminUserSeeder<br>
 php artisan db:seed --class=CreateCustomerSeeder<br>
 php artisan db:seed --class=CreateProductsSeeder<br>
 php artisan db:seed --class=CreateSellerSeeder
-
+<br>
+php artisan permission:create-permission-routes
 ex: 
 - username: admin or admin@gmail.com
 - password: admin123
