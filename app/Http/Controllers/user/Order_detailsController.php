@@ -8,6 +8,8 @@ use App\Models\Order;
 use App\Models\Order_details;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class Order_detailsController extends Controller
 {
@@ -29,6 +31,9 @@ class Order_detailsController extends Controller
      * Add cart items into after user click "order" in checkout page
      * */
     public function storeCartItems(Request $request){
+
+        abort_if(Gate::denies('cart.clear'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
 
     $curr_user_cart =Cart::where("user_id",$this->getUserId());
 

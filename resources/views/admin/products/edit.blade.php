@@ -46,8 +46,8 @@
                         <input value="{{ $product->details }}"
                                type="text"
                                class="form-control"
-                               name="description"
-                               placeholder="Description" required>
+                               name="details"
+                               placeholder="details" required>
 
                         @if ($errors->has('details'))
                             <span class="text-danger text-left">
@@ -77,7 +77,6 @@
                         <input value="{{ $product->quantity }}"
                                type="number"
                                min="1"
-                               max="100"
                                class="form-control"
                                name="quantity"
                                placeholder="quantity" required>
@@ -89,8 +88,23 @@
                         @endif
                     </div>
 
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Photo:</label>
+                        <br>
+                        <img src="{{asset("images/products/".$product->image)}}"
+                             style="width: 200px;height: 200px;">
+                        <div style="margin-bottom: 20px">
+                            <div class="form-group">
+                                <input type="file" name="image">
+                            </div>
+                            <input type="hidden" style="display: none" class="product-image"
+                                   readonly value="{{$product->image}}">
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Save changes</button>
-                    <a href="{{ route('admin.products.index') }}" class="btn btn-default">Back</a>
+                    <a href="{{ route('admin.products.index') }}"
+                       class="btn btn-default">Back</a>
                 </form>
             </div>
 

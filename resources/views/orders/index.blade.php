@@ -4,7 +4,6 @@
 
 @section('content')
     @auth
-        @role("user")
         <div class="body flex-grow-1" style="margin-left: 300px; padding-right: 5rem">
             <h1>Your Orders</h1>
             <div class="container bg-secondary bg-opacity-10 p-4" style="border-radius: 10px;">
@@ -108,7 +107,6 @@
                 <p>{{ session('success') }}</p>
             </div>
         @endif
-        @endrole
     @endauth
 @endsection
 

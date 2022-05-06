@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::group(["namespace" => "App\Http\Controllers"], function () {
 
     /*Customer Routes*/
-    Route::get("/","user\ProductsController@index")
+    Route::get("/", "user\ProductsController@index")
         ->name("users.products.index");
 
     /**
@@ -43,33 +44,34 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
          */
         Route::get("/logout", "home\LogoutController@perform")->name("logout.perform");
 
-        Route::group(["prefix"=>"cart"],function(){
+        Route::group(["prefix" => "cart"], function () {
 
-            Route::get("/","user\CartsController@index")->name("cart.index");
-            Route::post("/","user\CartsController@store")->name("cart.store");
-            Route::post("/update","user\CartsController@update")->name("cart.update");
-            Route::delete("/clear","user\CartsController@clear")->name("cart.clear");
-            Route::post("/delete","user\CartsController@destroy")->name("cart.destroy");
+            Route::get("/", "user\CartsController@index")->name("cart.index");
+            Route::post("/", "user\CartsController@store")->name("cart.store");
+            Route::post("/update", "user\CartsController@update")->name("cart.update");
+            Route::delete("/clear", "user\CartsController@clear")->name("cart.clear");
+            Route::post("/delete", "user\CartsController@destroy")->name("cart.destroy");
         });
 
-        Route::group(["prefix" => "order_details"],function(){
-            Route::get("/","user\Order_detailsController@index")
+        Route::group(["prefix" => "order_details"], function () {
+            Route::get("/", "user\Order_detailsController@index")
                 ->name("users.order_details.index");
-            Route::post("/","user\Order_detailsController@storeCartItems")
+            Route::post("/", "user\Order_detailsController@storeCartItems")
                 ->name("users.order_details.store");
         });
 
-        Route::group(["prefix" => "user/order"],function(){
-            Route::get("/","user\OrdersController@index")->name("users.order.index");
+        Route::group(["prefix" => "user/order"], function () {
+            Route::get("/", "user\OrdersController@index")->name("users.order.index");
+            Route::get("/print", "user\OrdersController@printPdf")->name("users.order.print");
         });
 
 
         /*
-         * User Routes
+         * Admin/Seller Routes
          */
         Route::group(["prefix" => "admin"], function () {
 
-            Route::get("/dashboard","admin\HomeController@index")
+            Route::get("/dashboard", "admin\HomeController@index")
                 ->name("admin.dashboard");
 
             Route::group(["prefix" => "users"], function () {
@@ -79,7 +81,7 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
                 Route::post("/create", "admin\UserController@store")->name("admin.users.store");
                 Route::get("/{user}/show", "admin\UserController@show")->name("admin.users.show");
                 Route::get("/{user}/edit", "admin\UserController@edit")->name("admin.users.edit");
-                Route::patch("/{user}/update", "admin\UserController@upate")->name("admin.users.update");
+                Route::patch("/{user}/update", "admin\UserController@update")->name("admin.users.update");
                 Route::delete("/{user}/delete", "admin\UserController@destroy")->name("admin.users.destroy");
             });
 
@@ -97,7 +99,7 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
                     ->name("admin.products.show");
                 Route::get("/{product}/edit", "admin\ProductsController@edit")
                     ->name("admin.products.edit");
-                Route::patch("/{product}/update", "admin\ProductsController@upate")
+                Route::patch("/{product}/update", "admin\ProductsController@update")
                     ->name("admin.products.update");
                 Route::delete("/{product}/delete", "admin\ProductsController@destroy")
                     ->name("admin.products.destroy");
@@ -106,12 +108,24 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
             /*
              * Orderss Routes
              */
-            Route::group(["prefix"=>"orders"],function(){
-
+            Route::group(["prefix" => "orders"], function () {
+                Route::get("/{user_id}", "admin\OrdersController@index")
+                    ->name("admin.orders.index");
+//                Route::get("/list","admin\OrdersController@show")
+//                    ->name("admin.orders.show");
+                Route::get("/print/{order_id}", "admin\OrdersController@printPdf")
+                    ->name("admin.orders.print");
+                Route::get("/{order_details_id}/show",
+                    "admin\OrdersController@showSpecifiedOrder_Details_item")
+                    ->name("admin.orders.showOrderDetailsItem");
+                Route::post("/update", "admin\OrdersController@update")
+                    ->name("admin.orders.update");
             });
 
             Route::resource('roles', "admin\RolesController");
-            Route::resource('permissions',"admin\PermissionsController");
+            Route::resource('permissions', "admin\PermissionsController");
         });
     });
+
+
 });

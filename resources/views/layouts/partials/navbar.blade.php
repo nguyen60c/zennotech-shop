@@ -14,6 +14,13 @@
                     <li><a href="{{ route('users.order.index') }}"
                            class="nav-link px-2 text-white">Your Order</a></li>
                 @endauth
+
+                @hasanyrole("admin|seller")
+
+                <li><a href="{{ route('admin.dashboard') }}"
+                       class="nav-link px-2 text-white">Dashboard</a></li>
+
+                @endhasanyrole
             </ul>
 
             <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3">

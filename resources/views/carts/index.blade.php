@@ -140,7 +140,7 @@
 
             $(quantity_cart_arr).each(function (index) {
                 $.ajax({
-                    url: "http://127.0.0.1:8000/cart",
+                    url: "http://127.0.0.1:8000/cart/update",
                     method: "GET",
                     datatype: "json",
                     success: function (res) {

@@ -9,7 +9,7 @@
 
             <div class="container mt-4">
 
-                <form method="POST" action="{{ route('admin.products.update', $product->id) }}">
+                <form method="post" action="{{ route('admin.products.update', $product->id) }}">
                     @method('patch')
                     @csrf
                     <div class="mb-3">

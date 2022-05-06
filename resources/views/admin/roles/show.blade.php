@@ -33,12 +33,12 @@
                 </table>
             </div>
 
-        </div>
-        <div class="mt-4">
-            @if(count($rolePermissions) > 0)
-            <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-info">Edit</a>
-            @endif
-            <a href="{{ route('roles.index') }}" class="btn btn-default">Back</a>
+            <div class="mt-4" style="margin-bottom: 10px">
+                @if(count($rolePermissions) > 0)
+                    <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-info">Edit</a>
+                @endif
+                <a href="{{ route('roles.index') }}" class="btn btn-default">Back</a>
+            </div>
         </div>
     </div>
 
