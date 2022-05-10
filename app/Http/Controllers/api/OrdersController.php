@@ -39,6 +39,7 @@ class OrdersController extends Controller
     public function store(Request $request)
     {
 
+
         if ($request->quantity > 0) {
 
             /*Get orders details items*/
@@ -67,7 +68,7 @@ class OrdersController extends Controller
 
 
                 if ($product->quantity >= $request->quantity) {
-                    $this->cart->user_id = $this->userId();
+                    $this->cart->user_id = $this->getUserId();
                     $this->cart->quantity = $request->quantity;
                     $this->cart->product_id = $request->id;
                     $this->cart->save();
@@ -78,7 +79,7 @@ class OrdersController extends Controller
             }
             return "Add to cart failed";
         }
-
+        return "fails";
     }
 
     public function remove($id)

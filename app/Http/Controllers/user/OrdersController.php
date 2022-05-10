@@ -24,121 +24,6 @@ class OrdersController extends Controller
 
 
 
-    public function fail()
-    {
-
-        /*Get order_details_items array(id, quantity, user_id, product_id, date)*/
-        $order_details_items = Order_details::select(
-            "id",
-            "quantity",
-            "user_id",
-            "product_id",
-            DB::raw('DATE(created_at) as time'),
-            "created_at"
-        )
-            ->where("user_id", $this->getUserId())
-            ->latest()
-            ->get()->toArray();
-
-        $arr_date = array();
-        $arr_time = array();
-        $total_price_per_time = 0;
-        $var_previous_increase = 0;
-        $var_increase = 0;
-        $arr_order_details_item = array();
-        $arr_order_details = array();
-
-        foreach ($order_details_items as $item) {
-            array_push($arr_date, $item["time"]);
-            array_push($arr_time, $item["created_at"]);
-        }
-
-        /*Remove duplicating and Order indexes in arrays*/
-        $arr_date = array_values(array_unique($arr_date));
-        $arr_time = array_values(array_unique($arr_time));
-
-
-        for ($i = 0; $i < count($arr_date); $i++) {
-            for ($j = 0; $j < count($order_details_items); $j++) {
-
-                if ($arr_date[$i] == $order_details_items[$j]["time"]) { // Check did order_details buy in same date
-
-                    // Check every order_details_items has the same created_at
-                    if ($arr_time[$i] == $order_details_items[$j]["created_at"]) {
-
-                        /*We will get attribute of every order_details to total count once*/
-                        $product_item = Product::where("id", $order_details_items[$j]["product_id"])->get()->toArray()[0];
-                        $total_price_per_time = $total_price_per_time + ($product_item["price"] * $order_details_items[$j]["quantity"]);
-
-
-                        if ($arr_time[$i] != $order_details_items[$j + 1]["created_at"]) { //Check if current el not equal with next el
-
-                            $arr_order_details_item["user_id"] = $order_details_items[$i]["user_id"];
-                            $arr_order_details_item["product_id"] = $order_details_items[$i]["product_id"];
-                            $arr_order_details_item["time"] = $order_details_items[$j]["time"];
-                            $arr_order_details_item["created_at"] = $order_details_items[$i]["created_at"];
-                            $arr_order_details_item["total_price"] = $total_price_per_time;
-
-                            array_push($arr_order_details, $arr_order_details_item);
-                            $var_increase = $var_previous_increase;
-                        }
-                    } else if ($arr_time[$var_increase + 1] == $order_details_items[$j]["created_at"]) {
-
-                        /*We will get attribute of every order_details to total count once*/
-                        $product_item = Product::where("id", $order_details_items[$j]["product_id"])->get()->toArray()[0];
-                        $total_price_per_time = $total_price_per_time + ($product_item["price"] * $order_details_items[$j]["quantity"]);
-                        $var_increase++;
-                        if (isset($order_details_items[$j + 1]["created_at"]) == false) {
-                            //Check if current el not equal with next el
-
-                            $arr_order_details_item["user_id"] = $order_details_items[$var_increase]["user_id"];
-                            $arr_order_details_item["product_id"] = $order_details_items[$var_increase]["product_id"];
-                            $arr_order_details_item["time"] = $order_details_items[$var_increase]["time"];
-                            $arr_order_details_item["created_at"] = $order_details_items[$var_increase]["created_at"];
-                            $arr_order_details_item["total_price"] = $total_price_per_time;
-
-                            array_push($arr_order_details, $arr_order_details_item);
-                            $total_price_per_time = 0;
-                        }
-                    }
-
-//                    else if($arr_time[$i] != $order_details_items[$j]["created_at"]){ //Case not equal
-//
-//                        /*We will get attribute of every order_details to total count once*/
-//                        $product_item = Product::where("id", $order_details_items[$j]["product_id"])->get()->toArray()[0];
-//                        $total_price_per_time = $total_price_per_time + ($product_item["price"] * $order_details_items[$j]["quantity"]);
-//
-//                        if (empty($order_details_items[$j + 1]["created_at"])||
-//                            $arr_time[$i] != $order_details_items[$j + 1]["created_at"]) { //Check if current el not equal with next el
-//
-//                            $arr_order_details_item["user_id"] = $order_details_items[$i]["user_id"];
-//                            $arr_order_details_item["product_id"] = $order_details_items[$i]["product_id"];
-//                            $arr_order_details_item["time"] = $order_details_items[$j]["time"];
-//                            $arr_order_details_item["created_at"] = $order_details_items[$i]["created_at"];
-//                            $arr_order_details_item["total_price"] = $total_price_per_time;
-//
-//                            array_push($arr_order_details, $arr_order_details_item);
-//                            $total_price_per_time = 0;
-//
-//                        }
-//                    }
-                }
-            }
-        }
-
-        ddd($arr_order_details);
-
-        $previous_date_item = "";
-        $previous_time_item = "";
-
-        $date_arr = array();
-        $time_arr = array();
-
-
-        return view("orders.index")
-            ->with(compact("arr_temp"))
-            ->with(compact("unique_val_arr"));
-    }
 
     /*
      * Display user order_details list
@@ -148,45 +33,68 @@ class OrdersController extends Controller
         abort_if(Gate::denies('users.order.index'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $details_raw = Order_details::
-        select("id", "quantity", "user_id", "product_id",
-            DB::raw('DATE(created_at) as time'), "created_at")
+        /*Get items in order_details*/
+        $order_details_items = Order_details::
+        select("id", "quantity", "user_id", "product_id", "customer_name","item_price",
+            "customer_address", "customer_phone",
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('TIME(created_at) as hour'))
             ->where("user_id", $this->getUserId())
             ->latest()
             ->get()->toArray();
 
-        $data = $details_raw;
-        $arr_time = [];
-        $arr_temp = [];
+        $arr_time = array();
 
-        foreach ($data as $item) {
-            array_push($arr_time, $item["time"]);
+        foreach ($order_details_items as $item) {
+
+            $time = $item["date"] . "|" . $item["hour"];
+
+            array_push($arr_time, $time);
         }
 
-        $unique_val_arr = array_values(array_unique($arr_time));
+        $array_order_item = array();
 
-        foreach ($data as $item) {
-            if (array_search($item["time"], $unique_val_arr) >= 0) {
-                $status = Order::where("order_details_id", $item["id"])->get()->toArray();
-                $product = Product::where("id", $item["product_id"])->get()->toArray();
-                $item["position"] = array_search($item["time"], $unique_val_arr);
-                $item["product_name"] = $product[0]["name"];
-                if (isset($status[0]["status"])) {
-                    $item["status"] = $status[0]["status"];
-                } else {
-                    $item["status"] = "bị lỗi";
+        $total_order_details_item_price = 0;
+
+        foreach ($order_details_items as $key => $item) {
+
+            $arr_order_temp = array();
+
+            $time_explode = explode("|", $arr_time[$key]);
+            if ($item["date"] == $time_explode[0] &&
+                $item["hour"] == $time_explode[1]){
+
+                $arr_order_temp["order_details_id"] = $item["id"];
+                $arr_order_temp["customer_name"] = $item["customer_name"];
+                $arr_order_temp["customer_address"] = $item["customer_address"];
+                $arr_order_temp["customer_phone"] = $item["customer_phone"];
+                $total_order_details_item_price += $item["item_price"];
+                $arr_order_temp["total_price"] = $total_order_details_item_price;
+                $status = Order::select("status")
+                    ->where("order_details_id",$item["id"])->get()->toArray()[0]["status"];
+                $arr_order_temp["status"] = $status;
+                $arr_order_temp["date"] = $item["date"];
+                $arr_order_temp["time"] = $item["hour"];
+
+                if(isset($order_details_items[$key + 1])){
+                    if($order_details_items[$key + 1]["date"] != $item["date"] ||
+                        $order_details_items[$key + 1]["hour"] != $item["hour"]){
+                        array_push($array_order_item, $arr_order_temp);
+                    }
+                }else{
+                    array_push($array_order_item, $arr_order_temp);
+
                 }
-                $item["total"] = $item["quantity"] * $product[0]["price"];
-                array_push($arr_temp, $item);
+
+            }else if($item["date"] != $time_explode[0] &&
+                $item["hour"] != $time_explode[1]){
+                continue;
             }
         }
-        $this->array_temp = $arr_temp;
 
         return view("orders.index")
-            ->with(compact("arr_temp"))
-            ->with(compact("unique_val_arr"));
+            ->with(compact("array_order_item"));
     }
-
 
 
     public function printPdf($id)

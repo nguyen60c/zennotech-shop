@@ -4,6 +4,7 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +24,16 @@ class ProductsController extends Controller
 
 
         $products = Product::latest()->paginate(8);
+
+        foreach ($products as $key => $item) {
+
+            $user = User::where("id", $item["creator_id"])->get()->toArray()[0];
+
+            $products[$key]->creator_name = $user["name"];
+
+        }
+
+//        ddd($products);
 
         return view("admin.products.index", compact("products"));
     }
@@ -53,36 +64,15 @@ class ProductsController extends Controller
             "details" => "required|min:3",
             "quantity" => "required|numeric|gt:0",
             "price" => "required|numeric|gt:0",
-            "image" => "required|image|mimes:jpeg,png,jpg,gif,svg|max:2048",
+            "image" => "image|mimes:jpeg,png,jpg,gif,svg|max:2048",
         ]);
 
-        $input = $validation;
+        $data_input = $validation;
 
-        $is_existed = Product::where("name", $input["name"])->get()->toArray()[0];
+        $is_existed = Product::where("name", $data_input["name"])->get()->toArray();
 
-        if (count($is_existed) == 0) {
-            if ($image = $request->file('image')) {
-                $destinationPath = 'images/products/';
-                $profileImage = date('YmdHis') . "." . $image->getClientOriginalExtension();
-                $image->move($destinationPath, $profileImage);
-                $input['image'] = "$profileImage";
-            }
+        $this->isExistProductInDB($request, $is_existed, $data_input);
 
-            $product = new Product();
-            $product->name = $input["name"];
-            $product->description = $input["description"];
-            $product->details = $input["details"];
-            $product->quantity = $input["quantity"];
-            $product->price = $input["price"];
-            $product->image = $input["image"];
-            $product->save();
-
-            return redirect()->route('admin.products.index')
-                ->withSuccess(__('Product created successfully.'));
-        }
-
-        return redirect()->route('admin.products.index')
-            ->withErrors(__('Product has been created before.'));
     }
 
     /*
@@ -118,25 +108,24 @@ class ProductsController extends Controller
         abort_if(Gate::denies('admin.products.update'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+
         $validation = $request->validate([
             "name" => "required|min:3",
             "description" => "required|min:3",
             "details" => "required|min:3",
             "quantity" => "required|numeric|gt:0",
             "price" => "required|numeric|gt:0",
-            'image' => ''
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
 
         $input = $validation;
 
-//        ddd($input);
-
         $product = Product::where("name", $input["name"])->first();
 
-        if ($image = $request->file('image')) {
+        if ($request->hasFile('image')) {
 
-            ddd("hello");
+            $image = $request->file("image");
             $destinationPath = 'images/products/';
             $profileImage = date('YmdHis') . "." . $image->getClientOriginalExtension();
             $image->move($destinationPath, $profileImage);
@@ -152,8 +141,6 @@ class ProductsController extends Controller
             return redirect()->route('admin.products.index')
                 ->withSuccess(__('Product updated successfully.'));
         }
-        ddd("hello2");
-
         $product->name = $input["name"];
         $product->description = $input["description"];
         $product->details = $input["details"];
@@ -178,5 +165,59 @@ class ProductsController extends Controller
 
         return redirect()->route('admin.products.index')
             ->withSuccess(__('Product deleted successfully.'));
+    }
+
+
+    /*
+     * Check is product existed or not
+     * */
+    public function isExistProductInDB($request, $is_existed, $input)
+    {
+        if (count($is_existed) == 0) {
+
+            $input_image = $this->isExistImageRequest($request);
+
+            $input = array_merge($input, ["image" => $input_image]);
+
+            $this->createNewProduct($input);
+
+            return redirect()->route('admin.products.index')
+                ->withSuccess(__('Product created successfully.'));
+        }
+        return redirect()->route('admin.products.index')
+            ->withErrors(__('Product has been created before.'));
+    }
+
+    /*
+     * Check coming request image
+     *
+     * @return name of image
+     */
+    public function isExistImageRequest($request)
+    {
+
+        if ($image = $request->file('image')) {
+            $destinationPath = 'images/products/';
+            $profileImage = date('YmdHis') . "." . $image->getClientOriginalExtension();
+            $image->move($destinationPath, $profileImage);
+            $input['image'] = $profileImage;
+            return $input['image'];
+        }
+    }
+
+    /*
+     * Create a new product in db
+     * @param $input
+     */
+    public function createNewProduct($input)
+    {
+        $product = new Product();
+        $product->name = $input["name"];
+        $product->description = $input["description"];
+        $product->details = $input["details"];
+        $product->quantity = $input["quantity"];
+        $product->price = $input["price"];
+        $product->image = $input["image"];
+        $product->save();
     }
 }

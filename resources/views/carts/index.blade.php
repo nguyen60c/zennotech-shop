@@ -55,55 +55,49 @@
 
                             <p>
                                 <b>
-                                    {{ $item["name"] }}</a>
+                                    {{ $item["name"] }}
                                 </b>
                                 <br>
                                 <b>Price: </b>
                                 ${{ $item["price"] }}
+                                <br>
+                                <b>Quantity: </b>
+                                {{ $item["quantity"] }}
                                 <br>
                                 <b>Total: </b>
                                 <span class="total-price"></span>
                                 <br>
                             </p>
                             <div class="row" style="margin-left: 15px">
-                                <form action="{{route("cart.update")}}" method="POST">
-                                    {{ csrf_field() }}
-                                    <div class="form-group row">
-                                        <input type="hidden" value="{{ $item["id"]}}" id="id" name="id">
-                                        <span class="text-danger"></span>
-                                        <input type="hidden" class="price_product" readonly
-                                               style="display: none" value="{{ $item["price"] }}">
-                                        <input type="hidden" class="quantity_check_product" readonly
-                                               style="display: none" value="{{ $item["quantity"] }}">
-                                        <input type="number"
-                                               class="form-control form-control-sm quantity_check_cart"
-                                               value="{{ $item["quantity_item"] }}"
-                                               min="1"
-                                               max="100"
-                                               id="quantity" name="quantity"
-                                               style="width: 70px; margin-right: 10px;">
-                                        <button class="btn btn-secondary btn-sm"
-                                                style="margin-right: 25px;"><i
-                                                class="fa fa-edit"></i></button>
-                                    </div>
-                                </form>
-                                <form action="{{route("cart.destroy")}}" method="post">
-                                    {{ csrf_field() }}
-                                    <input type="hidden" style="display: none" value="{{ $item["cart_id"] }}" id="id" name="cart_id">
-                                    <input type="hidden" style="display: none" value="{{ $item["id"] }}" id="p_id" name="product_id">
+                                <div class="form-group row">
+                                    <span class="text-danger"></span>
+                                    <input type="number"
+                                           class="form-control form-control-sm quantity_check_cart"
+                                           value="{{ $item["quantity_item"] }}"
+                                           min="1"
+                                           max="100"
+                                           id="quantity" name="quantity"
+                                           style="width: 70px; margin-right: 10px;"/>
+                                </div>
+
+                                <form action="{{route("cart.destroy",$item["id"])}}" method="post">
                                     <button class="btn btn-dark btn-sm"
+                                            type="submit"
                                             style="margin-right: 10px;"><i
                                             class="fa fa-trash"></i></button>
+                                    <input type="hidden" name="_method" value="delete" />
+                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 </form>
                             </div>
-                            <p class="text-danger quantity-annouce"></p>
+                            <p class="text-danger quantity-annouce" style="width: 260px"></p>
                         </div>
                     </div>
                     <hr>
                 @endforeach
                 @if(count($cart_items)>0)
                     <form action="{{ route('cart.clear') }}" method="POST">
-                        {{ csrf_field() }}
+                        <input type="hidden" name="_method" value="delete" />
+                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
                         <button class="btn btn-secondary btn-md">Clear Cart</button>
                     </form>
                 @endif
@@ -117,10 +111,12 @@
                             </li>
                         </ul>
                     </div>
-                    <br><a href="{{route("users.products.index")}}"
-                           class="btn btn-dark">Continue Shopping</a>
-                    <a href="{{route("users.order_details.index")}}"
-                       class="btn btn-success">Proceed To Checkout</a>
+                    <br>
+                    <button class="btn btn-secondary btn-back">Continue Shopping</button>
+                    {{--                    <form class="btn-proceed-checkout" style="display: inline-block">--}}
+                    <button class="btn btn-success btn-process">Proceed To Checkout</button>
+                    {{--                    </form>--}}
+
                 </div>
             @endif
         </div>
@@ -132,61 +128,152 @@
     <script>
         $(document).ready(function () {
 
+
             var price_product = $(".price_product");
             var quantity_cart_arr = $(".quantity_check_cart");
             var quantity_product_arr = $(".quantity_check_product");
             var cart_total = $(".cart-total");
+            var total_price = $(".total-price");
+            var notif_quantity = $(".quantity-annouce");
 
 
-            $(quantity_cart_arr).each(function (index) {
-                $.ajax({
-                    url: "http://127.0.0.1:8000/cart/update",
-                    method: "GET",
-                    datatype: "json",
-                    success: function (res) {
+            var product_item_check_arr = [];
 
-                        var quantity_cart = parseInt(quantity_cart_arr.eq(index).val());
-                        var quantity_product = parseInt(quantity_product_arr.eq(index).val());
-                        var total = quantity_cart * parseInt(price_product.eq(index).val());
-                        var total_price = 0;
-
-                        $(".total-price").eq(index).text("$" + total)
-                        $(".quantity-annouce").eq(index).text("");
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
 
 
-                        $.each(quantity_cart_arr, function (index, value) {
-                            total_price += parseInt(quantity_cart_arr.eq(index).val()) * parseInt(price_product.eq(index).val());
+            /*Catch event when user change quantity cart items*/
+            $.ajax({
+                url: "{{url("cart/checkQuantityCartItem")}}",
+                method: "GET",
+                dataType: "json",
+                success: function (res) {
+                    var cart_total_price = 0;
+
+                    var product_item_check_arr = res;
+
+                    product_item_arr = res;
+
+                    total_price.each(function (index) {
+                        var total_price_cart_item = quantity_cart_arr.eq(index).val() * product_item_check_arr[index]["price"];
+                        $(this).text("$" + total_price_cart_item)
+
+
+                        cart_total_price += total_price_cart_item
+
+                        cart_total.text("Total: $" + cart_total_price)
+                    })
+
+
+                    quantity_cart_arr.each(function (index) {
+                        quantity_cart_arr.change(function () {
+
+                            var user_quantity = quantity_cart_arr.eq(index).val();
+
+                            if (product_item_check_arr[index]["quantity"] >= user_quantity && user_quantity > 0 && user_quantity !== "") {
+
+                                notif_quantity.eq(index).text("")
+
+                                var total_price_cart_item = user_quantity * product_item_check_arr[index]["price"];
+
+                                cart_total_price += total_price_cart_item;
+
+                                cart_total.text("Total: $" + cart_total_price)
+
+                                total_price.eq(index).text("$" + total_price_cart_item);
+
+                            } else if (product_item_check_arr[index]["quantity"] < user_quantity || user_quantity < 0) {
+                                quantity_cart_arr.eq(index).val(product_item_check_arr[index]["quantity"])
+                                notif_quantity.eq(index).text("There are only " + product_item_check_arr[index]["quantity"] + " products!");
+                            } else if (user_quantity === "") {
+
+                                notif_quantity.eq(index).text("Please fill your input")
+                            }
+
                         });
+                    })
 
-                        cart_total.text("Total: $" + total_price);
+                }
+            })
 
+            $(".btn-process").click(function (e) {
+
+                cart_item_quantity = [];
+
+                quantity_cart_arr.each(function (index) {
+                    if (quantity_cart_arr.eq(index).val() > 0) {
+
+                        myObjec = {
+                            quantity_origin: product_item_arr[index]["quantity"],
+                            cart_id: product_item_arr[index]["cart_id"],
+                            price_origin: product_item_arr[index]["price"],
+                            id_origin: product_item_arr[index]["id"],
+                            cart_item_quantity: quantity_cart_arr.eq(index).val()
+                        }
+                    }
+                    cart_item_quantity.push(myObjec);
+                });
+
+                $.ajax({
+                    method: "POST",
+                    url: "{{url("cart/switch-to-checkout")}}",
+                    dataType: "json",
+                    data: {
+                        cart_item_quantity,
+                    },
+                    success: function (res) {
+                        window.location.href = "{{route("cart.checkout.index")}}";
+                        console.log(res)
                     }
                 })
-            });
 
-            $(quantity_cart_arr).each(function (index) {
-                $(this).on("change click keypress", function () {
-                    $.ajax({
-                        url: "http://127.0.0.1:8000/cart",
-                        method: "GET",
-                        datatype: "json",
-                        success: function (res) {
+                if (typeof flat != "undefined") {
+                    console.log("hello world")
+                }
+            })
 
-                            var quantity_cart = parseInt(quantity_cart_arr.eq(index).val());
-                            var quantity_product = parseInt(quantity_product_arr.eq(index).val());
+            $(".btn-back").click(function (e) {
 
-                            if (quantity_product < quantity_cart || quantity_cart <= 0) {
-                                $(".quantity-annouce").eq(index).text("Out of reach");
-                            } else {
-                                var total = quantity_cart * parseInt(price_product.eq(index).val());
-                                console.log(total)
-                                $(".total-price").eq(index).text("$" + total)
-                                $(".quantity-annouce").eq(index).text("");
-                            }
+                cart_item_quantity = [];
+
+                quantity_cart_arr.each(function (index) {
+
+                    if (quantity_cart_arr.eq(index).val() > 0) {
+
+                        myObjec = {
+                            quantity_origin: product_item_arr[index]["quantity"],
+                            cart_id: product_item_arr[index]["cart_id"],
+                            price_origin: product_item_arr[index]["price"],
+                            id_origin: product_item_arr[index]["id"],
+                            cart_item_quantity: quantity_cart_arr.eq(index).val()
                         }
-                    })
+                    }
+                    cart_item_quantity.push(myObjec);
                 });
-            });
+
+                $.ajax({
+                    method: "POST",
+                    url: "{{url("cart/switch-to-checkout")}}",
+                    dataType: "json",
+                    data: {
+                        cart_item_quantity,
+                    },
+                    success: function (res) {
+                        window.location.href = "{{route("users.products.index")}}";
+                        console.log(res)
+                    }
+                })
+
+                if (typeof flat != "undefined") {
+                    console.log("hello world")
+                }
+            })
+
+            /*When user click Proceed to Checkout button*/
 
 
         })

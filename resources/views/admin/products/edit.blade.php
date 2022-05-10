@@ -12,7 +12,7 @@
 
             <div class="container mt-4">
 
-                <form method="POST" action="{{ route('admin.products.update', $product->id) }}">
+                <form method="POST" action="{{ route('admin.products.update', $product->id) }}" enctype="multipart/form-data">
                     @method('patch')
                     @csrf
                     <div class="mb-3">
@@ -89,7 +89,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="quantity" class="form-label">Photo:</label>
+                        <label for="image" class="form-label">Photo:</label>
                         <br>
                         <img src="{{asset("images/products/".$product->image)}}"
                              style="width: 200px;height: 200px;">
@@ -97,8 +97,8 @@
                             <div class="form-group">
                                 <input type="file" name="image">
                             </div>
-                            <input type="hidden" style="display: none" class="product-image"
-                                   readonly value="{{$product->image}}">
+{{--                            <input type="hidden" style="display: none" class="product-image"--}}
+{{--                                   readonly value="{{$product->image}}">--}}
                         </div>
                     </div>
 

@@ -19,13 +19,27 @@
                 <tr>
                     <th width="1%">No</th>
                     <th>Name</th>
-                    <th width="3%" colspan="3">Action</th>
+                    <th>Created by</th>
+                    <th>Time</th>
+                    <th width="3%" colspan="3">Actions</th>
                 </tr>
-                <?php $index = 0; ?>
+
+                {{--To sign order number in list--}}
+                <?php $page = $_GET["page"];
+
+                if($page == 1){
+                    $page = 0;
+                } else{
+                    $page = 8;
+                }
+
+                ?>
                 @foreach ($products as $key => $product)
                     <tr>
-                        <td>{{ ++$index }}</td>
+                        <td>{{ ++$key + $page }}</td>
                         <td>{{ $product->name }}</td>
+                        <td>{{$product->creator_name}}</td>
+                        <td>{{$product->created_at}}</td>
                         <td>
                             <a class="btn btn-info btn-sm" href="{{ route('admin.products.show', $product->id) }}">Show</a>
                         </td>
