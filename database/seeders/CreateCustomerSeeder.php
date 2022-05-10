@@ -25,9 +25,6 @@ class CreateCustomerSeeder extends Seeder
 
         $role = Role::create(['name' => 'user']);
 
-        $permissions = Permission::pluck('id','id')->all();
-
-        $role->syncPermissions($permissions);
 
         $user->assignRole([$role->id]);
     }

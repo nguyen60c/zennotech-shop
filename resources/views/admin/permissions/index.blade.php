@@ -1,6 +1,7 @@
 @extends("admin.layouts.app")
 @section("title","Permissions")
 
+
 @section('content')
 
     <div class="main">
@@ -19,7 +20,7 @@
             <table class="table table-striped">
                 <thead>
                 <tr>
-                    <th scope="col" width="15%">Name</th>
+                    <th scope="col" width="40%">Name</th>
                     <th scope="col">Guard</th>
                     <th scope="col" colspan="3" width="1%"></th>
                 </tr>
@@ -39,7 +40,7 @@
                 @endforeach
                 </tbody>
             </table>
-
+        {{$permissions->links("vendor.pagination.paginate-customer")}}
         </div>
     </div>
 

@@ -66,6 +66,8 @@
         <?php $count++; ?>
     @endforeach
 
+    {{$products->links("vendor.pagination.paginate-customer")}}
+
 @endsection
 
 

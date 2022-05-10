@@ -4,6 +4,8 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -14,6 +16,10 @@ class RolesController extends Controller
      */
     public function index(Request $request)
     {
+        abort_if(Gate::denies('roles.index'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+
         $roles = Role::orderBy("id", "DESC")->paginate(5);
         return view("admin.roles.index", compact("roles"))
             ->with('i', ($request->input('page', 1) - 1) * 5);
@@ -24,6 +30,9 @@ class RolesController extends Controller
      */
     public function create()
     {
+        abort_if(Gate::denies('roles.create'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $permissions = Permission::get();
         return view("admin.roles.create", compact("permissions"));
     }
@@ -33,6 +42,9 @@ class RolesController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(Gate::denies('roles.store'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $this->validate($request, [
             'name' => 'required|unique:roles,name',
             'permission' => 'required',
@@ -50,7 +62,12 @@ class RolesController extends Controller
      */
     public function show(Role $role)
     {
+        abort_if(Gate::denies('roles.show'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $rolePermissions = $role->permissions;
+
+//        $rolePermissions
 
         return view("admin.roles.show", compact("role", "rolePermissions"));
     }
@@ -60,6 +77,9 @@ class RolesController extends Controller
      */
     public function edit(Role $role)
     {
+        abort_if(Gate::denies('roles.edit'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $rolePermissions = $role->permissions->pluck("name")->toArray();
         $permissions = Permission::get();
 
@@ -71,6 +91,9 @@ class RolesController extends Controller
      */
     public function update(Role $role, Request $request)
     {
+        abort_if(Gate::denies('roles.update'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $this->validate($request, [
             'name' => 'required',
             'permission' => 'required',
@@ -80,7 +103,7 @@ class RolesController extends Controller
 
         $role->syncPermissions($request->get("permission"));
 
-        return redirect()->route("routes.index")
+        return redirect()->route("roles.index")
             ->with('success', 'Role updated successfully');
     }
 
@@ -88,6 +111,9 @@ class RolesController extends Controller
      * Remove the specified role
      */
     public function destroy(Role $role){
+        abort_if(Gate::denies('roles.destroy'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $role->delete();
 
         return redirect()->route("routes.delete")

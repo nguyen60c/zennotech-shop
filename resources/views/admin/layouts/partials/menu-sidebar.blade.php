@@ -6,12 +6,16 @@
 
         <ul class="sidebar-nav">
 
+            @hasanyrole("admin|seller")
             <li class="sidebar-item active">
                 <a class="sidebar-link" href="{{route("admin.dashboard")}}">
                     <i class="fa-solid fa-chalkboard"></i> <span
                         class="align-middle">Dashboard</span>
                 </a>
             </li>
+            @endhasanyrole
+
+            @role("admin")
 
             <li class="sidebar-item active">
                 <a class="sidebar-link" href="{{route("admin.users.index")}}">
@@ -33,12 +37,9 @@
                 </a>
             </li>
 
-            <li class="sidebar-item active">
-                {{--                <a class="sidebar-link" href="{{route("orders.index")}}">--}}
-                <i class="fa-solid fa-border-all"></i>
-                <span class="align-middle">Customer Orders</span>
-                {{--                </a>--}}
-            </li>
+            @endrole
+
+            @hasanyrole("admin|seller")
 
             <li class="sidebar-item active">
                 <a class="sidebar-link" href="{{route("admin.products.index")}}">
@@ -46,6 +47,15 @@
                     <span class="align-middle">Products</span>
                 </a>
             </li>
+
+            <li class="sidebar-item active">
+                <a class="sidebar-link" href="{{route("users.products.index")}}">
+                    <i class="fa-solid fa-person-military-pointing"></i>
+                    <span class="align-middle">Be a customer</span>
+                </a>
+            </li>
+
+            @endhasanyrole
 
             <li class="sidebar-item active">
                 <a class="sidebar-link" href="{{route("logout.perform")}}">

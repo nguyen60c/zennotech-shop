@@ -4,20 +4,28 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
+use Yajra\DataTables\DataTables;
 
 class PermissionsController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $permissions = Permission::all();
+        abort_if(Gate::denies('permissions.index'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+
+        $permissions = Permission::paginate(15);
 
         return view('admin.permissions.index', [
             'permissions' => $permissions
         ]);
+
     }
 
     /**
@@ -25,6 +33,9 @@ class PermissionsController extends Controller
      */
     public function create()
     {
+        abort_if(Gate::denies('permissions.create'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         return view('admin.permissions.create');
     }
 
@@ -33,6 +44,9 @@ class PermissionsController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(Gate::denies('permissions.store'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $request->validate([
             'name' => 'required|unique:users,name'
         ]);
@@ -48,6 +62,10 @@ class PermissionsController extends Controller
      */
     public function edit(Permission $permission)
     {
+
+        abort_if(Gate::denies('permissions.edit'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         return view('admin.permissions.edit', [
             'permission' => $permission
         ]);
@@ -58,6 +76,9 @@ class PermissionsController extends Controller
      */
     public function update(Request $request, Permission $permission)
     {
+        abort_if(Gate::denies('permissions.update'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $request->validate([
             'name' => 'required|unique:permissions,name,'.$permission->id
         ]);
@@ -73,6 +94,10 @@ class PermissionsController extends Controller
      */
     public function destroy(Permission $permission)
     {
+
+        abort_if(Gate::denies('permissions.destroy'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $permission->delete();
 
         return redirect()->route('permissions.index')

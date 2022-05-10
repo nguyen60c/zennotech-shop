@@ -12,7 +12,7 @@
 
             <div class="container mt-4">
 
-                <form method="POST" action="{{ route('admin.products.store') }}">
+                <form method="POST" action="{{ route('admin.products.store') }}" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
                         <label for="title" class="form-label">Name</label>
@@ -45,7 +45,7 @@
                         <input value="{{ old('details') }}"
                                type="text"
                                class="form-control"
-                               name="description"
+                               name="details"
                                placeholder="Details" required>
 
                         @if ($errors->has('details'))
@@ -60,7 +60,7 @@
                                type="number"
                                min="1"
                                class="form-control"
-                               name="description"
+                               name="price"
                                placeholder="Price" required>
 
                         @if ($errors->has('price'))
@@ -84,8 +84,16 @@
                         @endif
                     </div>
 
+                    <div class="form-group">
+                        <input type="file" name="image" required>
+                    </div>
 
-                    <button type="submit" class="btn btn-primary">Save product</button>
+                    @if ($errors->has('image'))
+                        <span class="text-danger text-left">
+                                {{ $errors->first('image') }}</span>
+                    @endif
+
+                    <button type="submit" class="btn btn-primary" style="margin-top: 10px">Save product</button>
                     <a href="{{ route('admin.products.index') }}" class="btn btn-default">Back</a>
                 </form>
             </div>

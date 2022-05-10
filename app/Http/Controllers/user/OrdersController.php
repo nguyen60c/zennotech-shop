@@ -9,7 +9,9 @@ use App\Models\Product;
 use Dompdf\Dompdf;
 use http\Client\Curl\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class OrdersController extends Controller
 {
@@ -143,6 +145,9 @@ class OrdersController extends Controller
      */
     public function index()
     {
+        abort_if(Gate::denies('users.order.index'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $details_raw = Order_details::
         select("id", "quantity", "user_id", "product_id",
             DB::raw('DATE(created_at) as time'), "created_at")
@@ -187,7 +192,7 @@ class OrdersController extends Controller
     public function printPdf($id)
     {
         abort_if(
-            Gate::denies('order_details_list_user_printToPdf'),
+            Gate::denies('users.orders.print'),
             Response::HTTP_FORBIDDEN,
             '403 Forbidden'
         );

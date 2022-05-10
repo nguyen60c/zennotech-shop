@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class CartsController extends Controller
 {
@@ -29,6 +31,9 @@ class CartsController extends Controller
      */
     public function index()
     {
+        abort_if(Gate::denies('cart.index'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $specified_user_cart = Cart::where("user_id", $this->getUserId());
 
         $cart_items_raw = $specified_user_cart->paginate(15);
@@ -50,6 +55,9 @@ class CartsController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(Gate::denies('cart.store'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $check_quantity_request = $request->quantity;
 
         if ($check_quantity_request == 1) {
@@ -80,6 +88,10 @@ class CartsController extends Controller
      * Update quantity of specified existing item in cart
      */
     public function update(Request $request){
+
+        abort_if(Gate::denies('cart.update'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         if ($request->quantity > 0) {
 
             Cart::where("user_id", $this->getUserId())
@@ -95,10 +107,19 @@ class CartsController extends Controller
             ->route("cart.index");
     }
 
+    /*Add item to cart*/
+    public function addItemToCart(){
+
+    }
+
     /*
      * Delete specified existing item in cart
      */
     public function destroy(Request $request){
+        abort_if(Gate::denies('cart.destroy'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+
         Cart::where("product_id",$request->product_id)
             ->where("user_id",$this->getUserId())
             ->delete();
@@ -111,6 +132,9 @@ class CartsController extends Controller
      */
     public function clear()
     {
+        abort_if(Gate::denies('cart.clear'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         Cart::where("user_id", $this->getUserId())->delete();
         return redirect()->route("cart.index");
     }
