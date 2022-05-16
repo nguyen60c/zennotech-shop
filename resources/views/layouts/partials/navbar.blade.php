@@ -23,9 +23,10 @@
                 @endhasanyrole
             </ul>
 
-            <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3">
+            <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" method="post" action="{{route("users.products.search")}}">
+                <input type="hidden" name="_token" value="{{csrf_token()}}"/>
                 <input type="search" class="form-control form-control-dark"
-                       placeholder="Search..." aria-label="Search">
+                       placeholder="Search..." name="searching" aria-label="Search">
             </form>
 
             @auth

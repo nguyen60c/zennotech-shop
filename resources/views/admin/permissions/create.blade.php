@@ -2,6 +2,7 @@
 @section("title","Create Permissions")
 
 @section('content')
+
     <div class="main">
         @include("admin.layouts.partials.menu-navbar-toggle")
         <div class="bg-light p-4 rounded">

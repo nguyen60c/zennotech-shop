@@ -48,6 +48,14 @@
                 </a>
             </li>
 
+
+            <li class="sidebar-item active">
+                <a class="sidebar-link" href="{{route("admin.orders.history")}}">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span class="align-middle">Recently Orders</span>
+                </a>
+            </li>
+
             <li class="sidebar-item active">
                 <a class="sidebar-link" href="{{route("users.products.index")}}">
                     <i class="fa-solid fa-person-military-pointing"></i>

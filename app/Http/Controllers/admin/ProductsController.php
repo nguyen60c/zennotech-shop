@@ -22,18 +22,28 @@ class ProductsController extends Controller
         abort_if(Gate::denies('admin.products.index'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        if(auth()->user()->getRoleNames()[0] == "admin"){
 
-        $products = Product::latest()->paginate(8);
+            $products = Product::latest()->paginate(8);
 
-        foreach ($products as $key => $item) {
+            foreach ($products as $key => $item) {
 
-            $user = User::where("id", $item["creator_id"])->get()->toArray()[0];
+                $user = User::where("id", $item["creator_id"])->get()->toArray()[0];
 
-            $products[$key]->creator_name = $user["name"];
+                $products[$key]->creator_name = $user["name"];
 
+            }
+
+        }else{
+            $products = Product::where("creator_id", auth()->user()->id)->latest()->paginate(8);
+
+            foreach ($products as $key => $item) {
+
+                $user = User::where("id", $item["creator_id"])->get()->toArray()[0];
+
+                $products[$key]->creator_name = $user["name"];
+            }
         }
-
-//        ddd($products);
 
         return view("admin.products.index", compact("products"));
     }
@@ -71,8 +81,14 @@ class ProductsController extends Controller
 
         $is_existed = Product::where("name", $data_input["name"])->get()->toArray();
 
-        $this->isExistProductInDB($request, $is_existed, $data_input);
+        if (count($is_existed) == 0) {
+            $this->isExistProductInDB($request, $is_existed, $data_input);
 
+            return redirect()->route('admin.products.index')
+                ->withSuccess(__('Product created successfully.'));
+        }
+        return redirect()->route('admin.products.index')
+            ->withErrors(__('Product has been created before.'));
     }
 
     /*
@@ -82,6 +98,11 @@ class ProductsController extends Controller
     {
         abort_if(Gate::denies('admin.products.show'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        if($product["creator_id"] !== auth()->user()->id &&
+            auth()->user()->getRoleNames()[0] != "admin"){
+            abort(403, 'Unauthorized action.');
+        }
 
         return view("admin.products.show"
             , compact("product"));
@@ -95,6 +116,11 @@ class ProductsController extends Controller
         abort_if(Gate::denies('admin.products.edit'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        if($product["creator_id"] !== auth()->user()->id &&
+            auth()->user()->getRoleNames()[0] != "admin"){
+            abort(403, 'Unauthorized action.');
+        }
+
         return view("admin.products.edit",
             compact("product"));
     }
@@ -107,7 +133,6 @@ class ProductsController extends Controller
 
         abort_if(Gate::denies('admin.products.update'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
-
 
         $validation = $request->validate([
             "name" => "required|min:3",
@@ -161,6 +186,11 @@ class ProductsController extends Controller
         abort_if(Gate::denies('admin.products.destroy'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        if($product["creator_id"] !== auth()->user()->id &&
+            auth()->user()->getRoleNames()[0] != "admin"){
+            abort(403, 'Unauthorized action.');
+        }
+
         $product->delete();
 
         return redirect()->route('admin.products.index')
@@ -173,19 +203,17 @@ class ProductsController extends Controller
      * */
     public function isExistProductInDB($request, $is_existed, $input)
     {
-        if (count($is_existed) == 0) {
 
-            $input_image = $this->isExistImageRequest($request);
+            if ($image = $request->file('image')) {
+
+                $input_image = $this->isExistImageRequest($image);
+
+            }
 
             $input = array_merge($input, ["image" => $input_image]);
 
             $this->createNewProduct($input);
 
-            return redirect()->route('admin.products.index')
-                ->withSuccess(__('Product created successfully.'));
-        }
-        return redirect()->route('admin.products.index')
-            ->withErrors(__('Product has been created before.'));
     }
 
     /*
@@ -193,16 +221,14 @@ class ProductsController extends Controller
      *
      * @return name of image
      */
-    public function isExistImageRequest($request)
+    public function isExistImageRequest($image)
     {
 
-        if ($image = $request->file('image')) {
             $destinationPath = 'images/products/';
             $profileImage = date('YmdHis') . "." . $image->getClientOriginalExtension();
             $image->move($destinationPath, $profileImage);
             $input['image'] = $profileImage;
             return $input['image'];
-        }
     }
 
     /*
@@ -218,6 +244,7 @@ class ProductsController extends Controller
         $product->quantity = $input["quantity"];
         $product->price = $input["price"];
         $product->image = $input["image"];
+        $product->creator_id = auth()->user()->id;
         $product->save();
     }
 }

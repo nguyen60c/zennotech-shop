@@ -6,7 +6,7 @@ use App\Http\Controllers\api\CartController;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
-use App\Models\Order_details;
+use App\Models\OrderDetails;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -24,7 +24,7 @@ class CartsController extends Controller
     public function __construct()
     {
         $this->cart = new Cart();
-        $this->order_details = new Order_details();
+        $this->order_details = new OrderDetails();
     }
 
     /*
@@ -40,22 +40,26 @@ class CartsController extends Controller
      */
     public function index()
     {
-        abort_if(Gate::denies('cart.index'),
-            Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(
+            Gate::denies('cart.index'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
-        $specified_user_cart = Cart::where("user_id", $this->getUserId());
+        $cartItems = Cart::where("user_id", $this->getUserId());
 
-        $cart_items_raw = $specified_user_cart->paginate(10);
-        $cart_items = array();
+        $cartItems = $cartItems->paginate(10);
+        $listCartItems = array();
 
-        foreach ($cart_items_raw as $item) {
-            $product_item = Product::where("id", $item->product_id)->get()->toArray();
-            $product_item[0]["quantity_item"] = $item->quantity;
-            $product_item[0]["cart_id"] = $item->id;
-            $cart_items = array_merge($cart_items, $product_item);
+        /*Get cart items*/
+        foreach ($cartItems as $item) {
+            $productItems = Product::where("id", $item->product_id)->get()->toArray();
+            $productItems[0]["quantity_item"] = $item->quantity;
+            $productItems[0]["cart_id"] = $item->id;
+            $listCartItems = array_merge($listCartItems, $productItems);
         }
 
-        return view("carts.index", compact("cart_items"));
+        return view("carts.index", compact("listCartItems"));
     }
 
     /*
@@ -64,27 +68,24 @@ class CartsController extends Controller
      * Add specified product when user click "Addtocart"
      *  Imediately adding one in cart item
      */
-    public function store($id)
+    public function store($product_id)
     {
-        abort_if(Gate::denies('cart.store'),
-            Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(
+            Gate::denies('cart.store'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
-        $this->data_request_cart_item = 1;
-
-        $cart_items_db = Cart::where("product_id", $id)
+        $cart_item = Cart::where("product_id", $product_id)
             ->where("user_id", $this->getUserId());
 
-        $is_exist_cart_item = $cart_items_db->get()->toArray();
+        $is_empty = $cart_item->get()->toArray();
 
 
-        $this->createCartItem($is_exist_cart_item, $cart_items_db, $id);
+        $this->createCartItem($is_empty, $cart_item, $product_id);
 
 
         return redirect()->route("cart.index");
-    }
-
-    public function getDataRequest($data){
-        return $data;
     }
 
     /*
@@ -92,8 +93,11 @@ class CartsController extends Controller
      */
     public function destroy($id)
     {
-        abort_if(Gate::denies('cart.destroy'),
-            Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(
+            Gate::denies('cart.destroy'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
         Cart::where("product_id", $id)
             ->where("user_id", $this->getUserId())
@@ -107,38 +111,66 @@ class CartsController extends Controller
      */
     public function clear()
     {
-        abort_if(Gate::denies('cart.clear'),
-            Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(
+            Gate::denies('cart.clear'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
         Cart::where("user_id", $this->getUserId())->delete();
         return redirect()->route("cart.index");
     }
 
     /*Add cart items to order_details after click proceed to checkout*/
-    public function switchToCheckoutPage(Request $request){
+    public function addCartItemsToOrderDetails(Request $request)
+    {
 
-        $cart_items = $request->all();
+        $cartItems = $request->all();
 
-        foreach($cart_items as $item_arr){
+        /*Check only seller*/
+        foreach ($cartItems as $itemArr) {
 
-            foreach ($item_arr as $item){
+            foreach ($itemArr as $key => $item) {
 
-                Cart::where("id",$item["cart_id"])
-                    ->where("product_id",$item["id_origin"])
-                    ->update(["quantity" => $item["cart_item_quantity"]]);
+                // array_push($test, $key);
+                if (isset($itemArr[$key + 1])) {
+
+                    if ($item["creatorId"] != $itemArr[$key + 1]["creatorId"]) {
+                        return "false";
+                    }
+                }
+            }
+        }
+
+        foreach ($cartItems as $itemArr) {
+
+            foreach ($itemArr as $item) {
+
+                Cart::where("id", $item["cartId"])
+                    ->where("product_id", $item["productId"])
+                    ->update(["quantity" => $item["userInputQuantity"]]);
             }
         }
         return $this->data_request_cart_item;
     }
 
+
+
     /*
      * Add cart items into after user click "order" in checkout page
      * */
-    public function storeCartItems(Request $request)
+    public function createOrderDetailsItem(Request $request)
     {
+        abort_if(
+            Gate::denies('cart.clear'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
-        abort_if(Gate::denies('cart.clear'),
-            Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $cartId = explode("|",$request->cartid);
+        if($cartId[0] === ""){
+            array_shift($cartId);
+        }
 
         $validation = $request->validate([
             'name_customer' => 'required|min:3',
@@ -146,37 +178,18 @@ class CartsController extends Controller
             'customer_phone' => 'required|regex:/(0)[0-9]{9}/'
         ]);
 
+        $test = array();
+        foreach($cartId as $item){
+            $cart = Cart::where("user_id", $this->getUserId())
+                ->where("id", $item)
+                ->orderBy("creator_id", "DESC");
 
-        $curr_user_cart = Cart::where("user_id", $this->getUserId());
+            $cartItems = $cart->get()->toArray();
 
-        $cart_items = $curr_user_cart->get()->toArray();
+            $this->handleCreating($cartItems, $validation);
 
-        $this->isValidOrNot($cart_items);
-
-        foreach ($cart_items as $item) {
-
-
-
-            $order_details = new Order_details();
-            $order_details->customer_name = $validation["name_customer"];
-            $order_details->customer_address = $validation["customer_address"];
-            $order_details->customer_phone = $validation["customer_phone"];
-
-            $order_details->quantity = $item["quantity"];
-            $order_details->user_id = $item["user_id"];
-            $order_details->product_id = $item["product_id"];
-            $order_details->item_price = $item["price"];
-            $order_details->save();
-
-            $order = new Order();
-            $order->user_id = $item["user_id"];
-            $order->order_details_id = $order_details->id;
-            $order->total_price = $order_details->item_price;
-            $order->save();
+            $cart->delete();
         }
-
-
-        $curr_user_cart->delete();
 
         return redirect()->route("users.products.index");
     }
@@ -185,20 +198,25 @@ class CartsController extends Controller
     public function displayCheckoutPage(Request $request)
     {
 
-        $order_details_items = Cart::where("user_id", $this->getUserId());
-        $details = $order_details_items->get();
+        $cartItem = Cart::where("user_id", $this->getUserId())
+            ->orderBy('updated_at','DESC')->first();
 
         $time_created = 0;
 
-        foreach ($details as $item) {
+        $cartItems = Cart::where("user_id", $this->getUserId())
+            ->where("updated_at",$cartItem["updated_at"])->get()->toArray();
+
+//        ddd($cartItems);
+        foreach ($cartItems as $key => $item) {
             $product = Product::where("id", $item["product_id"])->get()->toArray()[0];
             $product["quantity_temp"] = $item["quantity"];
-            $product["date_update"] = $item["updated_at"]->toDateString();
-            $product["hour_update"] = $item["updated_at"]->toTimeString();
-            $this->total_price += $item->quantity * $product["price"];
+            $product["date_update"] = date('d-m-Y', strtotime($item["created_at"]));
+            $product["hour_update"] = date('h:m:s', strtotime($item["created_at"]));
+            $product["cart_id"] = $cartItems[$key]["id"];
+            $time_created = $item["created_at"];
+            $this->total_price += $item["quantity"] * $product["price"];
             array_push($this->data, (array)$product);
         }
-
 
         $data = $this->data;
         $total = $this->total_price;
@@ -213,17 +231,16 @@ class CartsController extends Controller
     {
         $cart_item_list = Cart::where("user_id", $this->getUserId())->get()->toArray();
 
-
         $data = array();
 
-        foreach ($cart_item_list as $key=>$item) {
+        foreach ($cart_item_list as $key => $item) {
 
-            $product_item = Product::select("quantity", "price", "id")
+            $product_item = Product::select("quantity", "price", "id", "creator_id")
                 ->where("id", $item["product_id"])->get()->toArray()[0];
 
             $product_item["cart_id"] = $item["id"];
 
-            $data = array_merge($data,[$key => $product_item]);
+            $data = array_merge($data, [$key => $product_item]);
         }
 
         return $data;
@@ -231,27 +248,97 @@ class CartsController extends Controller
 
 
     /*
-     * Make sure all the cart_items have the same creator_id
-     *
      * @param Cart $cart_items
      *
      * @return Illuminate\Routing\Redirector
      */
-    public function isValidOrNot($cart_items){
-        $creator_array = array();
+    public function handleCreating($cartItems, $validation)
+    {
 
-        foreach ($cart_items as $key => $item){
-            $creator = Product::select("creator_id")->where("id",$item["product_id"])->get()->toArray()[0]["creator_id"];
-            array_push($creator_array,$creator);
+        $totalPrice = 0;
+
+        /*Total price*/
+
+        foreach ($cartItems as $key => $item) {
+            $totalPrice += $item["price"];
         }
 
-        $creator_array = array_flip($creator_array);
-        $result = array_unique($creator_array);
+        /*Just Creating a newly order details every loops*/
+        foreach ($cartItems as $key => $item) {
 
-        /*Make sure that all the order_details_item have the same creator*/
-        if(count($result) != 1){
-            return redirect()->route("cart.checkout.index");
+            $productItem = Product::where("id", $item["product_id"]);
+            $productQuantity = $productItem->get()->toArray()[0]["quantity"];
+            $quantity = $productQuantity - $item["quantity"];
+
+            if ($quantity < $item["quantity"] || $item["quantity"] < 0) {
+                return redirect()->route("cart.index")
+                    ->withErrors("Your input value quantity is invalid");
+            }
+
+            $orderDetailsItem = OrderDetails::create([
+                "customer_name" => $validation["name_customer"],
+                "customer_address" => $validation["customer_address"],
+                "customer_phone" => $validation["customer_phone"],
+
+                "quantity" => $item["quantity"],
+                "user_id" => $item["user_id"],
+                "product_id" => $item["product_id"],
+                "item_price" => $item["price"],
+                "creator_id" => $item["creator_id"]
+            ]);
+
+
+            $productItem->update(["quantity" =>
+            $productQuantity - $item["quantity"]]);
+
+            Order::create([
+                "user_id" => $item["user_id"],
+                "order_details_id" => $orderDetailsItem->id,
+                "total_price" => $totalPrice,
+                "creator_id" => $orderDetailsItem->creator_id
+            ]);
         }
+    }
+
+    /*
+     * Creating a new orderDetails Item
+     *
+     * @return creator_id
+     * */
+    public
+    function storeOrderDetailsItem($item, $validation)
+    {
+
+        $orderDetailsItem = new OrderDetails();
+        $orderDetailsItem->customer_name = $validation["name_customer"];
+        $orderDetailsItem->customer_address = $validation["customer_address"];
+        $orderDetailsItem->customer_phone = $validation["customer_phone"];
+
+        $orderDetailsItem->quantity = $item["quantity"];
+        $orderDetailsItem->user_id = $item["user_id"];
+        $orderDetailsItem->product_id = $item["product_id"];
+        $orderDetailsItem->item_price = $item["price"];
+        $orderDetailsItem->creator_id = $item["creator_id"];
+        $orderDetailsItem->save();
+
+        $productItem = Product::where("id", $item["product_id"]);
+        $productQuantity = $productItem->get()->toArray()[0]["quantity"];
+
+        $quantity = $productQuantity - $item["quantity"];
+
+        if ($quantity < $item["quantity"] || $item["quantity"] < 0) {
+            return redirect()->route("cart.index")
+                ->withErrors("Your input value quantity is invalid");
+        }
+
+        $productItem->update(["quantity" => $productQuantity["quantity"] - $item["quantity"]]);
+
+        $order = new Order();
+        $order->user_id = $item["user_id"];
+        $order->order_details_id = $orderDetailsItem->id;
+        $order->total_price = $orderDetailsItem->item_price;
+        $order->creator_id = $orderDetailsItem->creator_id;
+        $order->save();
     }
 
 
@@ -262,28 +349,35 @@ class CartsController extends Controller
      *
      * @return Illuminate\Routing\Redirector
      */
-    public function createCartItem($is_exist_cart_item, $cart_items_db, $id){
+    public
+    function createCartItem($is_empty, $cart_items, $product_id)
+    {
 
-        if (count($is_exist_cart_item) > 0) {
-            $is_exist_cart_item = $cart_items_db->get()->toArray()[0];
+        if (count($is_empty) > 0) {
 
-            $product_item = Product::where("id", $id)->get()->toArray()[0];
+            $cart_item = $cart_items->get()->toArray()[0];
 
-            if ($product_item["quantity"] >= $is_exist_cart_item["quantity"] + 1) {
-                $cart_items_db->update(["quantity" =>
-                    $is_exist_cart_item["quantity"] + 1]);
+            $product_item = Product::where("id", $product_id)->get()->toArray()[0];
+
+            if ($product_item["quantity"] >= $cart_item["quantity"] + 1) {
+                $cart_items->update(["quantity" =>
+                $cart_item["quantity"] + 1]);
             } else {
                 return redirect()->route("users.products.index");
             }
         } else {
-            $product_item_db = Product::where("id", $id);
-            $is_exist_product_item = $product_item_db->get()->toArray()[0];
 
-            if (count($is_exist_product_item) > 0) {
+            $product_item = Product::where("id", $product_id);
+            $is_empty_product = $product_item->get()->toArray()[0];
+
+            if (count($is_empty_product) > 0) {
+
+                $product_item = $is_empty_product;
                 $this->cart->user_id = $this->getUserId();
-                $this->cart->product_id = $id;
+                $this->cart->product_id = $product_id;
                 $this->cart->quantity = 1;
-                $this->cart->price = $is_exist_product_item["price"];
+                $this->cart->creator_id = $product_item["creator_id"];
+                $this->cart->price = $product_item["price"];
                 $this->cart->save();
             } else {
                 return redirect()->route("users.products.index");

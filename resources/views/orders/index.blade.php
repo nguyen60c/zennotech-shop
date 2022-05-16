@@ -15,8 +15,9 @@
                         <th scope="col">Name</th>
                         <th scope="col">Address</th>
                         <th scope="col">Phone Number</th>
-                        <th scope="col">Total</th>
+                        <th scope="col">Total Price</th>
                         <th scope="col">Status</th>
+                        <th scope="col">Details</th>
 
                     </tr>
                     </thead>
@@ -28,7 +29,23 @@
                     <?php $old_val_num = 0 ?>
                     <?php $test = []; ?>
 
-                    @foreach($array_order_item as $item)
+                    @if(count($orderItemArr) == 0)
+                        <tr style="margin: auto;">
+                            <td>
+                                <h3 class="text-danger">You don't have any order</h3>
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+{{--                            <td></td>--}}
+
+                        </tr>
+                    @endif
+
+                    @foreach($orderItemArr as $item)
 
                         <tr style="margin: auto;">
 
@@ -37,7 +54,7 @@
                             <td class="align-middle">{{$item["customer_name"]}}</td>
                             <td class="align-middle">{{$item["customer_address"]}}</td>
                             <td class="align-middle">{{$item["customer_phone"]}}</td>
-                            <td class="align-middle">{{$item["total_price"]}}</td>
+                            <td class="align-middle">${{number_format($item["total_price"])}}</td>
                             @if($item["status"] === "Processing")
                                 <td class="align-middle text-success bolder"
                                     style="font-weight: 700">{{$item["status"]}}</td>
@@ -48,6 +65,14 @@
                                 <td class="align-middle text-danger bolder"
                                     style="font-weight: 700">{{$item["status"]}}</td>
                             @endif
+
+                            <?php $paramOrderShow = $item["date"] . "|" . $item["time"] ?>
+
+                            <td class="align-middle">
+                                <a href="{{route("users.order.show",
+                                $paramOrderShow)}}" class="btn btn-primary">Details</a>
+                            </td>
+
                         </tr>
                     @endforeach
 

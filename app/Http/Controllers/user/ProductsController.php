@@ -16,4 +16,11 @@ class ProductsController extends Controller
 
         return view("products.index",compact("products"));
     }
+
+    public function search(Request $request){
+
+        $products = Product::where("name","like","%".$request->searching."%")->paginate(6);
+        return view("products.show",compact("products"));
+
+    }
 }

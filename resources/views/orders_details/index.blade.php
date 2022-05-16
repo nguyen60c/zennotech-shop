@@ -6,7 +6,7 @@
     @auth
         <div class="body flex-grow-1" style="padding-right: 5rem;padding-top: 10px">
             <h1>Checkout</h1>
-            <h3>Date: {{date('d/m/20y',strtotime($time_created))}}</h3>
+            <h3>Date: {{date('d/m/y',strtotime($time_created))}}</h3>
             <div class="row" style="margin-top: 30px">
                 <div class="container bg-secondary bg-opacity-10 p-4 col" style="border-radius: 10px; margin-right: 10px">
 
@@ -55,7 +55,15 @@
                         </thead>
                         <tbody>
 
+{{--                        {{ddd($data)}}--}}
+                        <?php $cartIdString = ""; ?>
+
                         @foreach($data as $order)
+
+                            <?php
+                                $cartIdString .= "|" . $order["cart_id"];
+                            ?>
+
                             <tr style="margin: auto;">
 
                                 <td class="align-middle">{{ date('h:i:s A',strtotime($order["hour_update"])) }}</td>
@@ -75,11 +83,11 @@
                     </table>
 
 
-
                     <div style="display: flex;justify-content: flex-end">
                         <th>
                             <form method="post" style="margin-right: 10px" action="{{route("cart.checkout.store")}}">
                                 @csrf
+                                <input type="hidden" value="{{$cartIdString}}" class="input-cartId-hidden" name="cartid">
                                 <input type="hidden" value="" class="input-name-hidden" name="name_customer">
                                 <input type="hidden" value="" class="input-address-hidden" name="customer_address">
                                 <input type="hidden" value="" class="input-phone-hidden" name="customer_phone">

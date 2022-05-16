@@ -4,105 +4,107 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\Order_details;
+use App\Models\OrderDetails;
 use App\Models\Product;
 use App\Models\User;
-use Dompdf\Dompdf;
+//use Barryvdh\DomPDF\PDF;
+use Barryvdh\DomPDF\Facade as PDF;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class OrdersController extends Controller
 {
-    /*Display all order_details of specified user*/
+    /*Display all order_details of specified user in user list*/
     public function index($id)
     {
-        abort_if(Gate::denies('admin.orders.index'),
-            Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $order = Order::where("user_id", $id)->get()->toArray();
+        abort_if(
+            Gate::denies('admin.orders.index'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
 
-        if(count($order)>0){
-            $order = $order[0];
-        }
-
-        $details_raw = Order_details::
-        select("id", "quantity", "user_id", "product_id",
-            DB::raw('DATE(created_at) as time'), "created_at")
+        /*Get items in order_details*/
+        $orderDetailsItems = OrderDetails::select("*")
             ->where("user_id", $id)
-            ->latest()
+            ->orderBy("updated_at", "DESC")
             ->get()->toArray();
 
-        $data = $details_raw;
+        $timeArray = array();
 
-        $arr_temp = [];
+        /*Check order details items arrray is not empty*/
+        if (count($orderDetailsItems) > 0) {
 
-        $arr_time = [];
-        foreach ($data as $item) {
-            array_push($arr_time, $item["time"]);
-        }
+            /*To seprate two date and time into a string*/
+            foreach ($orderDetailsItems as $key => $item) {
+                $time = date('Y-m-d|H:i:s', strtotime($item["created_at"]));
 
-        $unique_val_arr = array_values(array_unique($arr_time));
+                $time = explode("|", $time);
 
-        foreach ($data as $item) {
-            if (array_search($item["time"], $unique_val_arr) >= 0) {
-                $status = Order::where("order_details_id", $item["id"])->get()->toArray();
-                $product = Product::where("id", $item["product_id"])->get()->toArray();
-                $item["position"] = array_search($item["time"], $unique_val_arr);
-                $item["product_name"] = $product[0]["name"];
-                if (isset($status[0]["status"])) {
-                    $item["status"] = $status[0]["status"];
-                } else {
-                    $item["status"] = "bị lỗi";
-                }
-                $item["total"] = $item["quantity"] * $product[0]["price"];
-                array_push($arr_temp, $item);
+                $orderDetailsItems[$key]["date"] = $time[0];
+                $orderDetailsItems[$key]["time"] = $time[1];
+
+                array_push($timeArray, $time);
             }
-        }
 
-        $this->array_temp = $arr_temp;
+
+            $orderItemArr = $this->handleOrderDetailsItems($timeArray, $orderDetailsItems);
+        } else {
+            /*When array is empty*/
+            $orderItemArr = array();
+        }
 
         return view("admin.orders.index")
-            ->with(compact("arr_temp"))
-            ->with(compact("unique_val_arr"))
-            ->with(compact("order"));
+            ->with(compact("orderItemArr"))
+            ->with(["userId" => $id]);
+
     }
 
-    /*Get specified order_details_id and redirect to page order_details show*/
-    public function showSpecifiedOrder_Details_item($order_details_item_id)
+    public function displayOrderDetailsItem($param)
     {
 
-        abort_if(Gate::denies('admin.orders.showOrderDetailsItem'),
-            Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $param = explode("|", $param);
 
-        $specified_user_order = Order::where("order_details_id",$order_details_item_id)->get()->toArray()[0];
+        $time = $param[0] . " " . $param[1];
 
-        $specified_user_order_details_item = Order_details::where("id",$specified_user_order["order_details_id"])->get()->toArray()[0];
-
-
-        $product_item = Product::where("id", $specified_user_order_details_item["product_id"])->get()->toArray()[0];
+        $userId = $param[2];
 
 
-        $data = array();
+        $orderItems = Order::where("user_id", $param[2])
+            ->where("created_at", $time)->get()->toArray();
 
-        /*Add data*/
-        $data["status"] = $specified_user_order["status"];
-        $data["user_id"] = $specified_user_order["user_id"];
-        $user = User::where("id", $specified_user_order["user_id"])->get()->toArray()[0];
-        $data["username"] = $user["username"];
-        $data["image"] = $product_item["image"];
-        $data["name"] = $product_item["name"];
-        $data["details"] = $product_item["details"];
-        $data["description"] = $product_item["description"];
-        $data["price"] = $product_item["price"];
-        $data["quantity"] = $product_item["quantity"];
-        $data["order_details_id"] = $specified_user_order_details_item["id"];
-        $data["created_at"] = $specified_user_order_details_item["created_at"];
-        $data["order_details_item_id"] = $order_details_item_id;
+        $totalPrice = 0;
+
+        $orderDetailsItemsArr = array();
+
+        $orderDetailsItemsStatus = "";
+
+        $orderDetailsId = 0;
+
+        $dateOrderDetailsItems = $orderItems[0]["created_at"];
+
+        foreach ($orderItems as $key => $item) {
+            $orderDetailsItems = OrderDetails::where("id", $item["order_details_id"])
+                ->get()->toArray()[0];
+            $productItem = Product::where("id", $orderDetailsItems["product_id"])
+                ->get()->toArray()[0];
+            $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
+            $orderDetailsItemsArr[$key]["id"] = $orderDetailsItems["id"];
+            $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
+            $totalPrice = $totalPrice + intval($orderDetailsItems["item_price"]);
+            $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
+            $orderDetailsItemsStatus = $orderItems[$key]["status"];
+        }
 
         return view("admin.orders.show")
-            ->with(compact("data"));
+            ->with(compact("orderDetailsItemsArr"))
+            ->with(compact("dateOrderDetailsItems"))
+            ->with(compact("orderDetailsItemsStatus"))
+            ->with(compact("userId"))
+            ->with(compact("time"));
     }
 
     /*Updating status of specified order_details*/
@@ -111,12 +113,23 @@ class OrdersController extends Controller
         abort_if(Gate::denies('admin.orders.update'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        Order::where("order_details_id", $request->order_details_id)
-            ->where("user_id", $request->user_id)
+        Order::where("user_id", $request->user_id)
+            ->where("created_at", $request->time)
             ->update(["status" => $request->status]);
 
+        return redirect()->route("admin.orders.history");
 
-        redirect()->route("admin.orders.index",$request->user_id);
+    }
+
+    public function updateOrderDetailsHistory(Request $request){
+        abort_if(Gate::denies('admin.orders.updateOrderDetailsHistory'),
+            Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        Order::where("user_id", $request->user_id)
+            ->where("created_at", $request->time)
+            ->update(["status" => $request->status]);
+
+        return redirect()->route("admin.orders.index",$request->user_id);
     }
 
 
@@ -126,52 +139,220 @@ class OrdersController extends Controller
         abort_if(Gate::denies('admin.orders.print'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $order = Order::where('id', $id)->first();
 
-        $details_raw = Order_details::
-        select("id", "quantity", "user_id", "product_id",
-            DB::raw('DATE(created_at) as time'), "created_at")
+        /*Get items in order_details*/
+        $orderDetailsItems = OrderDetails::select("*")
             ->where("user_id", $id)
-            ->latest()
+            ->orderBy("updated_at", "DESC")
             ->get()->toArray();
 
-        $data = $details_raw;
+        $user = User::where("id",$id)->get()->toArray()[0];
 
-        $arr_temp = [];
+        $currentTime = Carbon::now()->toDateTimeString();
+        $currentTime = explode(" ", $currentTime);
+        $currentTime[0] = str_replace("-","", $currentTime[0]);
+        $currentTime[1] = str_replace(":","", $currentTime[1]);
+        $nameFile = $currentTime[0] . "-" . $currentTime[1] . "-" . $user["name"];
 
-        $arr_time = [];
-        foreach ($data as $item) {
-            array_push($arr_time, $item["time"]);
+        $timeArray = array();
+
+        /*Check order details items arrray is not empty*/
+        if (count($orderDetailsItems) > 0) {
+
+            /*To seprate two date and time into a string*/
+            foreach ($orderDetailsItems as $key => $item) {
+                $time = date('Y-m-d|H:i:s', strtotime($item["created_at"]));
+
+                $time = explode("|", $time);
+
+                $orderDetailsItems[$key]["date"] = $time[0];
+                $orderDetailsItems[$key]["time"] = $time[1];
+
+                array_push($timeArray, $time);
+            }
+
+
+            $orderItemArr = $this->handleOrderDetailsItems($timeArray, $orderDetailsItems);
+        } else {
+            /*When array is empty*/
+            $orderItemArr = array();
         }
 
-        $unique_val_arr = array_values(array_unique($arr_time));
+        $pdf = PDF::loadView('admin.orders.print',  compact('orderItemArr'));
+        return $pdf->download("$nameFile.pdf");
+    }
 
-        foreach ($data as $item) {
-            if (array_search($item["time"], $unique_val_arr) >= 0) {
-                $status = Order::where("order_details_id", $item["id"])->get()->toArray();
-                $product = Product::where("id", $item["product_id"])->get()->toArray();
-                $item["position"] = array_search($item["time"], $unique_val_arr);
-                $item["product_name"] = $product[0]["name"];
-                if (isset($status[0]["status"])) {
-                    $item["status"] = $status[0]["status"];
-                } else {
-                    $item["status"] = "bị lỗi";
+    public function ordersHistory()
+    {
+
+        $orderItems = Order::where("creator_id", auth()->user()->id)
+            ->orderBy("updated_at", "DESC")
+            ->get()->toArray();
+
+//        ddd(auth()->user()->id);
+
+        $timeArray = array();
+
+        $orderDetailsItemsArray = array();
+
+//        $timeCheck =
+
+        foreach ($orderItems as $key => $item) {
+            $orderDetailsItems = OrderDetails::where("id", $item["order_details_id"])
+                ->get()->toArray();
+            $orderDetailsItems[0]["status"] = $item["status"];
+            $orderDetailsItems[0]["userId"] = $item["user_id"];
+            if(isset($orderItems[$key + 1])){
+                if($orderItems[$key + 1]["created_at"] == $item["created_at"]){
+                    continue;
                 }
-                $item["total"] = $item["quantity"] * $product[0]["price"];
-                array_push($arr_temp, $item);
+            }
+            $orderDetailsItemsArray = array_merge($orderDetailsItemsArray, $orderDetailsItems);
+        }
+
+
+        return view("admin.orders.historyOrders")
+            ->with(compact("orderDetailsItemsArray"));
+    }
+
+    public function showDetailsOrderItemsHistory($param)
+    {
+        $param = explode("|", $param);
+
+        $time = $param[0] . " " . $param[1];
+
+        $userId = $param[2];
+
+        $orderItems = Order::where("user_id", $userId)
+            ->where("created_at", $time)->get()->toArray();
+
+        $totalPrice = 0;
+
+        $orderDetailsItemsArr = array();
+
+        $orderDetailsItemsStatus = "";
+
+        $orderDetailsId = 0;
+
+        $dateOrderDetailsItems = $orderItems[0]["created_at"];
+
+        foreach ($orderItems as $key => $item) {
+            $orderDetailsItems = OrderDetails::where("id", $item["order_details_id"])
+                ->get()->toArray()[0];
+            $productItem = Product::where("id", $orderDetailsItems["product_id"])
+                ->get()->toArray()[0];
+            $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
+            $orderDetailsItemsArr[$key]["id"] = $orderDetailsItems["id"];
+            $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
+            $totalPrice = $totalPrice + intval($orderDetailsItems["item_price"]);
+            $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
+            $orderDetailsItemsStatus = $orderItems[$key]["status"];
+        }
+
+        return view("admin.orders.showDetailsOrderHistory")
+            ->with(compact("orderDetailsItemsArr"))
+            ->with(compact("dateOrderDetailsItems"))
+            ->with(compact("orderDetailsItemsStatus"))
+            ->with(compact("userId"))
+            ->with(compact("time"));
+    }
+
+    public function handleOrderDetailsItems($timeArray, $orderDetailsItems)
+    {
+
+        $lengthOrderDetails = count($orderDetailsItems);
+
+        $orderDetailsItemTemp = array();
+
+        $orderDetailsArray = array();
+
+        $creatorId = $orderDetailsItems[0]["creator_id"];
+
+        $totalPrice = 0;
+        $previousTime = $orderDetailsItems[0]["time"];
+        $previousDate = $orderDetailsItems[0]["date"];
+
+        $start = 0;
+
+        foreach ($orderDetailsItems as $key => $item) {
+            if ($item["time"] == $previousTime && $previousDate == $item["date"]) {
+
+                $start = 1;
+
+                $orderItemTemp["order_details_id"] = $item["id"];
+                $orderItemTemp["customer_name"] = $item["customer_name"];
+                $orderItemTemp["customer_address"] = $item["customer_address"];
+                $orderItemTemp["customer_phone"] = $item["customer_phone"];
+
+                /*To sum price has the same creator_id*/
+                $totalPrice += intval($item["item_price"]);
+
+                /*To get status order details item from order*/
+                $status = Order::select("status")
+                    ->where("order_details_id", $item["id"])
+                    ->get()->toArray()[0]["status"];
+
+                $orderItemTemp["status"] = $status;
+                $orderItemTemp["date"] = $item["date"];
+                $orderItemTemp["time"] = $item["time"];
+                $orderDetailsItemTemp = $orderItemTemp;
+
+                if (!isset($orderDetailsItems[$key + 1])) {
+                    $orderDetailsItemTemp["total_price"] = $totalPrice;
+                    array_push($orderDetailsArray, $orderDetailsItemTemp);
+                }
+            } else if (
+                $item["time"] !== $previousTime
+                && $previousDate == $item["date"]
+            ) {
+
+                if ($start != 0) {
+                    $orderDetailsItemTemp["total_price"] = $totalPrice;
+                    array_push($orderDetailsArray, $orderDetailsItemTemp);
+                    $start = 0;
+                    $totalPrice = 0;
+                }
+
+                /*Update time and date*/
+                $previousTime = $item["time"];
+                $previousDate = $item["date"];
+
+                $orderItemTemp["order_details_id"] = $item["id"];
+                $orderItemTemp["customer_name"] = $item["customer_name"];
+                $orderItemTemp["customer_address"] = $item["customer_address"];
+                $orderItemTemp["customer_phone"] = $item["customer_phone"];
+
+                /*To sum price has the same creator_id*/
+                $totalPrice += intval($item["item_price"]);
+
+                /*To get status order details item from order*/
+                $status = Order::select("status")
+                    ->where("order_details_id", $item["id"])
+                    ->get()->toArray()[0]["status"];
+
+                $orderItemTemp["status"] = $status;
+                $orderItemTemp["date"] = $item["date"];
+                $orderItemTemp["time"] = $item["time"];
+                $orderDetailsItemTemp = $orderItemTemp;
+
+                if (isset($orderDetailsItems[$key + 1])) {
+                    if (
+                        $orderItemTemp["date"] == $orderDetailsItems[$key + 1]["date"]
+                        && $orderItemTemp["time"] != $orderDetailsItems[$key + 1]["time"]
+                    ) {
+                        $orderDetailsItemTemp["total_price"] = $totalPrice;
+                        array_push($orderDetailsArray, $orderDetailsItemTemp);
+                        $start = 0;
+                        $totalPrice = 0;
+                    }
+                } else {
+                    $orderDetailsItemTemp["total_price"] = $totalPrice;
+                    array_push($orderDetailsArray, $orderDetailsItemTemp);
+                    $start = 0;
+                    $totalPrice = 0;
+                }
             }
         }
-
-        $dompdf = new Dompdf();
-        $dompdf->loadHtml(view('admin.orders.print-order-to-pdf', compact(["order", "arr_temp", "unique_val_arr"])));
-
-        // (Optional) Setup the paper size and orientation
-        $dompdf->setPaper('A4', 'landscape');
-
-        // Render the HTML as PDF
-        $dompdf->render();
-
-        // Output the generated PDF to Browser
-        $dompdf->stream('invoice.pdf');
+        return ($orderDetailsArray);
     }
 }
