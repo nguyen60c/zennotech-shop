@@ -11,11 +11,6 @@ class AuthController extends Controller
 {
     public function login(LoginRequest $request)
     {
-//        $fields = $request->validate([
-//            "username" => "required|string",
-//            "password" => "required|string"
-//        ]);
-
         /*Check email*/
         $user = User::where("username", $request->username)
             ->orWhere("email",$request->username)->first();

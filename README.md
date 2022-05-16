@@ -8,6 +8,7 @@
 </p>
 
 ## About project
+php artisan migrate <br>
 php artisan permission:create-permission-routes
 <br>
 php artisan db:seed --class=CreateAdminUserSeeder<br>

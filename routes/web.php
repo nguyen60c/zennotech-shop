@@ -47,18 +47,16 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
         Route::group(["prefix" => "cart"], function () {
 
             Route::get("/", "user\CartsController@index")->name("cart.index");
-            Route::post("/", "user\CartsController@store")->name("cart.store");
-            Route::post("/update", "user\CartsController@update")->name("cart.update");
+            Route::post("/cart-item/{id}", "user\CartsController@store")->name("cart.store");
+//            Route::put("/update", "user\CartsController@update")->name("cart.update");
             Route::delete("/clear", "user\CartsController@clear")->name("cart.clear");
-            Route::post("/delete", "user\CartsController@destroy")->name("cart.destroy");
+            Route::delete("/delete/{id}", "user\CartsController@destroy")->name("cart.destroy");
+            Route::post("/switch-to-checkout", "user\CartsController@switchToCheckoutPage")->name("cart.checkout.switch");
+            Route::get("/checkout", "user\CartsController@displayCheckoutPage")->name("cart.checkout.index");
+            Route::post("/checkout", "user\CartsController@storeCartItems")->name("cart.checkout.store");
+            Route::get("/checkQuantityCartItem", "user\CartsController@checkQuantityCartItem")->name("cart.checkQuantityCartItem");
         });
 
-        Route::group(["prefix" => "order_details"], function () {
-            Route::get("/", "user\Order_detailsController@index")
-                ->name("users.order_details.index");
-            Route::post("/", "user\Order_detailsController@storeCartItems")
-                ->name("users.order_details.store");
-        });
 
         Route::group(["prefix" => "user/order"], function () {
             Route::get("/", "user\OrdersController@index")->name("users.order.index");

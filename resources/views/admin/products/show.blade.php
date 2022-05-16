@@ -92,8 +92,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="quantity" class="form-label">Photo</label>
-                        <img src="{{asset("images/products/".$product->image)}}"
+                        <label for="image" class="form-label">Photo</label>
+                        <img name="image" src="{{asset("images/products/".$product->image)}}"
                              style="width: 200px;height: 200px;">
                     </div>
 

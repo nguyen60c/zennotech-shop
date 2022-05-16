@@ -21,8 +21,8 @@
                 <div class="col-md-4 mt-5" style="border-radius: 10px">
                     <div class="card mb-4" style="align-items: center;
                                     padding: 18px;border: none !important;">
-                        <img class="card-img-top" style="width: 200px; height: 200px"
-                             src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->image_path }}">
+                        <img class="card-img-top" style="width: 150px; height: 150px"
+                             src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->image }}">
                         <div class="card-body" style="width: 250px;">
                             <h4 class="card-text" style="margin-bottom: 5px;
                         text-overflow: ellipsis;
@@ -30,15 +30,8 @@
                         overflow: hidden;">
                                 {{ $product->name }}</h4>
                             <h5 class="text-danger">${{ number_format($product->price) }}</h5>
-                            <form action="{{ route('cart.store') }}" method="post">
+                            <form action="{{ route('cart.store',$product->id) }}" method="post">
                                 {{ csrf_field() }}
-                                <input type="hidden" style="display: none" value="{{ $product->id }}" id="id" name="id">
-                                <input type="hidden" style="display: none" value="{{ $product->name }}" id="name" name="name">
-                                <input type="hidden" style="display: none" value="{{ $product->price }}" id="price" name="price">
-                                <input type="hidden" style="display: none" value="{{ $product->image }}"
-                                       id="img" name="img">
-                                <input type="hidden" style="display: none" value="{{ $product->slug }}" id="slug" name="slug">
-                                <input type="hidden" style="display: none" value="1" id="quantity" name="quantity">
 
                                 <div class="card-footer" style="background-color: white;">
                                     <div class="row">

@@ -20,7 +20,7 @@ class CreateProductTable extends Migration
             $table->string("details");
             $table->bigInteger("quantity")->default(0);
             $table->bigInteger("price")->default(0);
-            $table->bigInteger("creator_id")->unique();
+            $table->bigInteger("creator_id")->default(1);
             $table->string("image");
             $table->timestamps();
         });
