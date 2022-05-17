@@ -140,9 +140,8 @@ class ProductsController extends Controller
             "details" => "required|min:3",
             "quantity" => "required|numeric|gt:0",
             "price" => "required|numeric|gt:0",
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
+            'image' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
-
 
         $input = $validation;
 

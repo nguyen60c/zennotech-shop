@@ -49,7 +49,9 @@
                         <thead>
                         <tr>
                             <th scope="col">Date Created</th>
-                            <th scope="col">Quantity</th>
+                            <th scope="col">Image</th>
+                            <th scope="col">Product Name</th>
+                            <th scope="col" class="text-center">Quantity</th>
                             <th scope="col" class="text-center">Price</th>
                         </tr>
                         </thead>
@@ -67,13 +69,19 @@
                             <tr style="margin: auto;">
 
                                 <td class="align-middle">{{ date('h:i:s A',strtotime($order["hour_update"])) }}</td>
-                                <td class="align-middle">{{$order["quantity_temp"]}}</td>
+                                <td><img src="{{ asset('images/products/' . $order['image']) }}" class="img-thumbnail"
+                                         width="50"
+                                         height="50"></td>
+                                <td class="align-middle">{{$order["name"]}}</td>
+                                <td class="align-middle text-center" >{{$order["quantity_temp"]}}</td>
                                 <td class="align-middle text-center">${{ number_format($order["price"]) }}</td>
                             </tr>
                         @endforeach
 
                         <tr style="margin: auto;border-style:none !important; ">
                             <th style="border: none">Total</th>
+                            <th style="border: none"></th>
+                            <th style="border: none"></th>
                             <th style="border: none"></th>
                             <th style="border: none" class="text-center">${{number_format($total)}}</th>
                         </tr>

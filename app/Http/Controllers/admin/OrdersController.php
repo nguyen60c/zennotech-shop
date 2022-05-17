@@ -7,12 +7,10 @@ use App\Models\Order;
 use App\Models\OrderDetails;
 use App\Models\Product;
 use App\Models\User;
-//use Barryvdh\DomPDF\PDF;
 use Barryvdh\DomPDF\Facade as PDF;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class OrdersController extends Controller
@@ -82,19 +80,27 @@ class OrdersController extends Controller
 
         $orderDetailsItemsStatus = "";
 
-        $orderDetailsId = 0;
-
         $dateOrderDetailsItems = $orderItems[0]["created_at"];
 
+        $customerName = "";
+        $customerAddress = "";
+        $customerPhone = "";
+
         foreach ($orderItems as $key => $item) {
+
             $orderDetailsItems = OrderDetails::where("id", $item["order_details_id"])
                 ->get()->toArray()[0];
+            $customerName = $orderDetailsItems["customer_name"];
+            $customerAddress = $orderDetailsItems["customer_address"];
+            $customerPhone = $orderDetailsItems["customer_phone"];
             $productItem = Product::where("id", $orderDetailsItems["product_id"])
                 ->get()->toArray()[0];
             $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
+            $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
+            $orderDetailsItemsArr[$key]["price"] = $productItem["price"];
             $orderDetailsItemsArr[$key]["id"] = $orderDetailsItems["id"];
             $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
-            $totalPrice = $totalPrice + intval($orderDetailsItems["item_price"]);
+            $totalPrice = intval($orderDetailsItems["item_price"]) * $orderDetailsItemsArr[$key]["quantity"];
             $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
             $orderDetailsItemsStatus = $orderItems[$key]["status"];
         }
@@ -104,6 +110,9 @@ class OrdersController extends Controller
             ->with(compact("dateOrderDetailsItems"))
             ->with(compact("orderDetailsItemsStatus"))
             ->with(compact("userId"))
+            ->with(compact("customerName"))
+            ->with(compact("customerAddress"))
+            ->with(compact("customerPhone"))
             ->with(compact("time"));
     }
 
@@ -134,72 +143,80 @@ class OrdersController extends Controller
 
 
     /*Print order to pdf*/
-    public function printPdf($id)
+    public function printPdf($param)
     {
         abort_if(Gate::denies('admin.orders.print'),
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
 
-        /*Get items in order_details*/
-        $orderDetailsItems = OrderDetails::select("*")
-            ->where("user_id", $id)
-            ->orderBy("updated_at", "DESC")
-            ->get()->toArray();
-
-        $user = User::where("id",$id)->get()->toArray()[0];
-
         $currentTime = Carbon::now()->toDateTimeString();
         $currentTime = explode(" ", $currentTime);
         $currentTime[0] = str_replace("-","", $currentTime[0]);
         $currentTime[1] = str_replace(":","", $currentTime[1]);
-        $nameFile = $currentTime[0] . "-" . $currentTime[1] . "-" . $user["name"];
+        $nameFile = $currentTime[0] . "-" . $currentTime[1];
 
-        $timeArray = array();
+        $param = explode("|", $param);
+        $time = $param[0] . " " . $param[1];
+        $userId = $param[2];
 
-        /*Check order details items arrray is not empty*/
-        if (count($orderDetailsItems) > 0) {
+        $orderItems = Order::where("user_id", $userId)
+            ->where("created_at", $time)->get()->toArray();
 
-            /*To seprate two date and time into a string*/
-            foreach ($orderDetailsItems as $key => $item) {
-                $time = date('Y-m-d|H:i:s', strtotime($item["created_at"]));
+        $totalPrice = 0;
+        $orderDetailsItemsArr = array();
+        $orderDetailsItemsStatus = "";
 
-                $time = explode("|", $time);
+        $customerName = "";
+        $customerAddress = "";
+        $customerPhone = "";
 
-                $orderDetailsItems[$key]["date"] = $time[0];
-                $orderDetailsItems[$key]["time"] = $time[1];
+        $dateOrderDetailsItems = $orderItems[0]["created_at"];
 
-                array_push($timeArray, $time);
-            }
+        foreach ($orderItems as $key => $item) {
+            $orderDetailsItems = OrderDetails::where("id", $item["order_details_id"])
+                ->get()->toArray()[0];
+            $productItem = Product::where("id", $orderDetailsItems["product_id"])
+                ->get()->toArray()[0];
+            $customerName = $orderDetailsItems["customer_name"];
+            $customerAddress = $orderDetailsItems["customer_address"];
+            $customerPhone = $orderDetailsItems["customer_phone"];
 
-
-            $orderItemArr = $this->handleOrderDetailsItems($timeArray, $orderDetailsItems);
-        } else {
-            /*When array is empty*/
-            $orderItemArr = array();
+            $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
+            $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
+            $orderDetailsItemsArr[$key]["price"] = intval($orderDetailsItems["item_price"]);
+            $orderDetailsItemsArr[$key]["id"] = $orderDetailsItems["id"];
+            $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
+            $totalPrice = $totalPrice + intval($orderDetailsItems["item_price"]);
+            $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
+            $orderDetailsItemsStatus = $orderItems[$key]["status"];
         }
 
-        $pdf = PDF::loadView('admin.orders.print',  compact('orderItemArr'));
+        $pdf = PDF::loadView('admin.orders.print',
+            compact(
+            ["orderDetailsItemsArr",
+            "dateOrderDetailsItems", "orderDetailsItemsStatus","customerName","customerAddress","customerPhone","userId","time"]));
         return $pdf->download("$nameFile.pdf");
     }
 
     public function ordersHistory()
     {
 
-        $orderItems = Order::where("creator_id", auth()->user()->id)
-            ->orderBy("updated_at", "DESC")
-            ->get()->toArray();
+        if(auth()->user()->getRoleNames()[0] === "admin"){
+            $orderItems = Order::orderBy("updated_at", "DESC")
+                ->get()->toArray();
+        }else{
+            $orderItems = Order::where("creator_id", auth()->user()->id)
+                ->orderBy("updated_at", "DESC")
+                ->get()->toArray();
+        }
 
-//        ddd(auth()->user()->id);
-
-        $timeArray = array();
 
         $orderDetailsItemsArray = array();
-
-//        $timeCheck =
 
         foreach ($orderItems as $key => $item) {
             $orderDetailsItems = OrderDetails::where("id", $item["order_details_id"])
                 ->get()->toArray();
+//            ddd($orderDetailsItems);
             $orderDetailsItems[0]["status"] = $item["status"];
             $orderDetailsItems[0]["userId"] = $item["user_id"];
             if(isset($orderItems[$key + 1])){
@@ -233,6 +250,9 @@ class OrdersController extends Controller
         $orderDetailsItemsStatus = "";
 
         $orderDetailsId = 0;
+        $customerName = "";
+        $customerAddress = "";
+        $customerPhone = "";
 
         $dateOrderDetailsItems = $orderItems[0]["created_at"];
 
@@ -241,8 +261,15 @@ class OrdersController extends Controller
                 ->get()->toArray()[0];
             $productItem = Product::where("id", $orderDetailsItems["product_id"])
                 ->get()->toArray()[0];
+            $customerName = $orderDetailsItems["customer_name"];
+            $customerAddress = $orderDetailsItems["customer_address"];
+            $customerPhone = $orderDetailsItems["customer_phone"];
             $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
+            $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
+            $orderDetailsItemsArr[$key]["price"] = intval($orderDetailsItems["item_price"]);
             $orderDetailsItemsArr[$key]["id"] = $orderDetailsItems["id"];
+            $orderDetailsItemsArr[$key]["created_at"] = $orderDetailsItems["created_at"];
+            $orderDetailsItemsArr[$key]["user_id"] = $orderDetailsItems["user_id"];
             $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
             $totalPrice = $totalPrice + intval($orderDetailsItems["item_price"]);
             $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
@@ -253,6 +280,9 @@ class OrdersController extends Controller
             ->with(compact("orderDetailsItemsArr"))
             ->with(compact("dateOrderDetailsItems"))
             ->with(compact("orderDetailsItemsStatus"))
+            ->with(compact("customerName"))
+            ->with(compact("customerAddress"))
+            ->with(compact("customerPhone"))
             ->with(compact("userId"))
             ->with(compact("time"));
     }
@@ -275,7 +305,7 @@ class OrdersController extends Controller
         $start = 0;
 
         foreach ($orderDetailsItems as $key => $item) {
-            if ($item["time"] == $previousTime && $previousDate == $item["date"]) {
+            if ($item["time"] == $previousTime) {
 
                 $start = 1;
 
@@ -303,7 +333,6 @@ class OrdersController extends Controller
                 }
             } else if (
                 $item["time"] !== $previousTime
-                && $previousDate == $item["date"]
             ) {
 
                 if ($start != 0) {
@@ -337,8 +366,7 @@ class OrdersController extends Controller
 
                 if (isset($orderDetailsItems[$key + 1])) {
                     if (
-                        $orderItemTemp["date"] == $orderDetailsItems[$key + 1]["date"]
-                        && $orderItemTemp["time"] != $orderDetailsItems[$key + 1]["time"]
+                        $orderItemTemp["time"] != $orderDetailsItems[$key + 1]["time"]
                     ) {
                         $orderDetailsItemTemp["total_price"] = $totalPrice;
                         array_push($orderDetailsArray, $orderDetailsItemTemp);

@@ -7,7 +7,6 @@
         <div class="body flex-grow-1">
             <h1>Orders</h1>
 
-
             <div class="container bg-secondary bg-opacity-10 p-4" style="border-radius: 10px;">
 
                 <div style="display: flex;justify-content: flex-start;">
@@ -57,12 +56,18 @@
 
                     </div>
                 </div>
+                <div>
+                    <h4>Customer: {{$customerName}}</h4>
+                    <h4>Address: {{$customerAddress}}</h4>
+                    <h4>Phone: {{$customerPhone}}</h4>
+                </div>
 
-
-                <table class="table">
+                <table class="table" style="margin-top: 40px">
                     <thead>
                     <tr>
-                        <th scope="col">Name</th>
+                        <th scope="col">Image</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Price</th>
                         <th scope="col">Quantity</th>
                         <th scope="col">Total</th>
                     </tr>
@@ -75,11 +80,19 @@
                     <?php $old_val_num = 0 ?>
                     <?php $test = []; ?>
 
+
                     @foreach( $orderDetailsItemsArr as $item)
 
                         <tr style="margin: auto;">
 
                             <td class="align-middle">{{$item["name"]}}</td>
+
+                            <td>
+                                <img src="{{ asset('images/products/' . $item['image']) }}" class="img-thumbnail"
+                                     width="100"
+                                     height="100">
+                            </td>
+                            <td class="align-middle">{{$item["price"]}}</td>
                             <td class="align-middle">{{$item["quantity"]}}</td>
                             <td class="align-middle">${{$item["total_price"]}}</td>
 
@@ -88,6 +101,12 @@
 
                     </tbody>
                 </table>
+                <?php
+
+                $time = date('Y-m-d|H:i:s', strtotime($orderDetailsItemsArr[0]["created_at"]));
+                $param = $time."|".$orderDetailsItemsArr[0]["user_id"];
+                ?>
+                <h4><a href="{{route("admin.orders.print",$param)}}">Print Order</a> </h4>
             </div>
             <form method="post" action="{{route("admin.orders.update")}}">
                 @csrf
@@ -98,7 +117,7 @@
                 <input type="hidden" name="time" class="input_user_time"
                        value="{{$time}}"/>
                 <button class="btn btn-primary" type="submit"><strong>Save</strong></button>
-                <a href="{{ route('admin.orders.index',auth()->user()->id) }}" class="btn btn-default">Back</a>
+                <a href="{{ route('admin.orders.history') }}" class="btn btn-default">Back</a>
 
             </form>
 

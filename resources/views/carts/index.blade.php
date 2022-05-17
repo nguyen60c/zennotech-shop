@@ -41,6 +41,7 @@
                 <br>
                 @if (count($listCartItems) > 0)
                     <h4>{{ count($listCartItems) }} Product(s) In Your Cart</h4><br>
+                    <h4 class="text-annouce text-danger"></h4>
                     <input type="checkbox" name="all_cart_items">
                     Select all
 
@@ -64,21 +65,27 @@
                                  height="200">
                         </div>
                         <div class="col-lg-5">
-
                             <p>
                                 <b>
-                                    {{ $item['name'] }}
+                                    <span class="product-name">{{ $item['name'] }}</span>
                                 </b>
                                 <br>
                                 <b>Price: $</b>
                                 <span class="cart-item-price">{{ $item['price'] }}</span>
                                 <br>
                                 <b>Quantity: </b>
+                                <span class="product-quantity">
                                 {{ $item['quantity'] }}
+                                </span>
                                 <br>
                                 <b>Total: </b>
                                 <span class="total-price"></span>
                                 <br>
+                                <a class="btn btn-warning"
+                                   href="{{route("users.products.details",$item["id"])}}"
+                                   style="font-weight: 700">
+                                    More infor
+                                </a>
                             </p>
                             <div class="row" style="margin-left: 15px">
                                 <div class="form-group row">
@@ -199,24 +206,25 @@
                             // debugger
                             if ($(this).is(':checked')) {
                                 $(this).prop('checked', true);
+                                $(".text-annouce").text("");
                                 priceCartItem = parseInt(cartItemPrice.eq(index)
                                     .text());
                                 quantityCartItem = quantityCartItems.eq(index).val();
-                                totalPriceCartItems += priceCartItem * quantityCartItem;
+                                totalPriceCartItems_second_temp += priceCartItem * quantityCartItem;
                                 cartItemsTotalPrice.text("Total: $" +
-                                    totalPriceCartItems)
+                                    totalPriceCartItems_second_temp)
                             } else {
                                 $(this).prop('checked', false);
-
+                                $('[name="all_cart_items"]').prop("checked", false)
                                 priceCartItem = parseInt(cartItemPrice.eq(index)
                                     .text());
                                 quantityCartItem = quantityCartItems.eq(index).val();
-
-                                totalPriceCartItems -= priceCartItem * quantityCartItem;
-                                totalPriceCartItems = totalPriceCartItems >= 0 ?
-                                    totalPriceCartItems : 0;
+                                console.log(totalPriceCartItems_second_temp)
+                                totalPriceCartItems_second_temp -= priceCartItem * quantityCartItem;
+                                totalPriceCartItems_second_temp = totalPriceCartItems_second_temp >= 0 ?
+                                    totalPriceCartItems_second_temp : 0;
                                 cartItemsTotalPrice.text("Total: $" +
-                                    totalPriceCartItems)
+                                    totalPriceCartItems_second_temp)
                             }
 
                         })
@@ -256,71 +264,84 @@
                         var count = 0;
 
 
+                        /*Bugs*/
                         quantityCartItems.change(function () {
                             // totalPriceCartItems = 0;
                             // debugger;
 
+                            var arrayCheck = [];
+
                             /*Get quantity cart item when user input value*/
                             var inputQuantityCartItem = quantityCartItems.eq(index)
                                 .val();
+                            var inputNameCartItem = $(".product-name").eq(index).text();
+
+                            arrayCheck.push(inputQuantityCartItem, inputNameCartItem);
 
                             /*Reset total price item every event*/
                             resultPriceCartItem = 0;
                             resultPriceCartItemsTotal = 0;
+                            var priceCartItems = 0;
 
-                            if (productItemArr[index]["quantity"] >=
-                                inputQuantityCartItem &&
-                                inputQuantityCartItem > 0 &&
-                                inputQuantityCartItem !== "") {
 
-                                if (checkBoxCartItems.eq(index).is(':checked')) {
+                            $.ajax({
+                                method: "POST",
+                                url: "{{ url('cart/check-quantity') }}",
+                                dataType: "json",
+                                data: {
+                                    arrayCheck
+                                },
+                                success: function (numberResult) {
 
-                                    if (index === 0) {
-                                        totalPriceCartItems_second = 0;
-                                        totalPriceCartItems_second_temp = 0;
+                                    var latestQuantityProduct = numberResult[1];
+                                    $(".product-quantity").eq(index).text(latestQuantityProduct);
+                                    if (numberResult[0] === 0) {
+                                        if (checkBoxCartItems.eq(index).is(':checked')) {
+                                            $(".text-annouce").text("");
+                                            if (index === 0) {
+                                                totalPriceCartItems_second = 0;
+                                                totalPriceCartItems_second_temp = 0;
+                                            }
+                                            var price = parseInt(cartItemPrice.eq(index).text());
+                                            quantityCartItem = quantityCartItems.eq(index).val();
+                                            totalPriceCartItems_second_temp +=
+                                                price *
+                                                quantityCartItem;
+                                            cartItemsTotalPrice.text("Total: $" +
+                                                totalPriceCartItems_second_temp)
+
+                                            priceCartItems = inputQuantityCartItem *
+                                                productItemArr[index]["price"];
+
+                                            resultPriceCartItem += priceCartItems;
+                                            cartItemsPrice.eq(index).text("$" +
+                                                resultPriceCartItem);
+
+                                        } else {
+
+                                            quantityCartItem = quantityCartItems.eq(index).val();
+                                            priceCartItems = inputQuantityCartItem *
+                                                productItemArr[index]["price"];
+                                            resultPriceCartItem += priceCartItems;
+                                            cartItemsPrice.eq(index).text("$" +
+                                                resultPriceCartItem);
+                                        }
+                                        quanityAlert.eq(index).text("")
+
+                                    } else if (numberResult[0] === 1) {
+
+                                        quantityCartItems.eq(index).val(1);
+
+                                        if (inputQuantityCartItem !== "") {
+                                            quanityAlert.eq(index).text("There are only " +
+                                                productItemArr[index]["quantity"] +
+                                                " products!");
+                                        } else {
+                                            quanityAlert.eq(index).text("Can not empty this field");
+                                        }
                                     }
-
-                                    if (totalPriceCartItems_second_temp ===
-                                        totalPriceCartItems_second) {
-
-                                        quantityCartItem = quantityCartItems.eq(index).val();
-                                        totalPriceCartItems_second_temp +=
-                                            priceCartItem *
-                                            quantityCartItem;
-                                        cartItemsTotalPrice.text("Total: $" +
-                                            totalPriceCartItems_second_temp)
-                                    } else {
-                                        totalPriceCartItems_second_temp +=
-                                            priceCartItem * quantityCartItem;
-                                        cartItemsTotalPrice.text("Total: $" +
-                                            totalPriceCartItems_second_temp)
-                                    }
-
-                                    var priceCartItems = inputQuantityCartItem *
-                                        productItemArr[index]["price"];
-
-                                    resultPriceCartItem += priceCartItems;
-                                    cartItemsPrice.eq(index).text("$" +
-                                        resultPriceCartItem);
-
                                 }
-                                quanityAlert.eq(index).text("")
-
-                            } else if (productItemArr[index]["quantity"] <
-                                inputQuantityCartItem ||
-                                inputQuantityCartItem < 0) {
-
-                                quantityCartItems.eq(index).val(productItemArr[index][
-                                    "quantity"
-                                    ]);
-
-                                quanityAlert.eq(index).text("There are only " +
-                                    productItemArr[index]["quantity"] +
-                                    " products!");
-
-                            } else if (inputQuantityCartItem === "") {
-                                quanityAlert.eq(index).text("Please fill your input");
-                            }
+                            })
                         });
                     })
                 }
@@ -354,22 +375,25 @@
                     }
                 });
 
-                $.ajax({
-                    method: "POST",
-                    url: "{{ url('cart/add-to-order-details') }}",
-                    dataType: "json",
-                    data: {
-                        cart_item_quantity,
-                    },
-                    success: function (res) {
-                        if (res) {
-                            window.location.href = "{{route("cart.checkout.index")}}";
-                            console.log(res)
-                        } else {
-                            $(".announce_quantity_result").text("You must choose product have the same seller !!");
+                if (cart_item_quantity.length > 0) {
+                    $.ajax({
+                        method: "POST",
+                        url: "{{ url('cart/add-to-order-details') }}",
+                        dataType: "json",
+                        data: {
+                            cart_item_quantity,
+                        },
+                        success: function (res) {
+                            if (res[0]) {
+                                window.location.href = "{{route("cart.checkout.index")}}";
+                            } else if (res[0] === false) {
+                                $(".announce_quantity_result").text("You must choose product have the same seller !!");
+                            }
                         }
-                    }
-                })
+                    });
+                } else {
+                    $(".text-annouce").text("You have not choose any cart items to order")
+                }
 
                 if (typeof flat != "undefined") {
                     console.log("hello world")

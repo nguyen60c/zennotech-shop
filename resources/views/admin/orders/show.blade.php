@@ -58,11 +58,19 @@
                     </div>
                 </div>
 
+                <div>
+                    <h4>Customer: {{$customerName}}</h4>
+                    <h4>Address: {{$customerAddress}}</h4>
+                    <h4>Phone: {{$customerPhone}}</h4>
+                </div>
+
 
                 <table class="table">
                     <thead>
                     <tr>
-                        <th scope="col">Name</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Image</th>
+                        <th scope="col">Price</th>
                         <th scope="col">Quantity</th>
                         <th scope="col">Total</th>
                     </tr>
@@ -80,6 +88,8 @@
                         <tr style="margin: auto;">
 
                             <td class="align-middle">{{$item["name"]}}</td>
+                            <td class="align-middle"><img src="{{ asset('images/products/' . $item['image']) }}" class="img-thumbnail" width="100" height="100"></td>
+                            <td class="align-middle">{{$item["price"]}}</td>
                             <td class="align-middle">{{$item["quantity"]}}</td>
                             <td class="align-middle">${{$item["total_price"]}}</td>
 

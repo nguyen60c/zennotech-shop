@@ -8,10 +8,12 @@
             <div class="container bg-secondary bg-opacity-10 p-4" style="border-radius: 10px;">
                 <h4>Date: {{date('d-m-Y', strtotime($dateOrderDetailsItems))}}</h4>
                 <h4>Time: {{date('H:m:s', strtotime($dateOrderDetailsItems))}}</h4>
+                <h4>By: {{$creator}}</h4>
                 <table class="table">
                     <thead>
                     <tr>
-                        <th scope="col">Name</th>
+                        <th scope="col">Image</th>
+                        <th scope="col">Product</th>
                         <th scope="col">Quantity</th>
                         <th scope="col">Price</th>
                     </tr>
@@ -28,9 +30,13 @@
 
                         <tr style="margin: auto;">
 
-                            <td class="align-middle">{{$item["name"]}}</td>
-                            <td class="align-middle">{{$item["quantity"]}}</td>
-                            <td class="align-middle">${{$item["total_price"]}}</td>
+                            <td class="align-middle"><h5>{{$item["name"]}}</h5></td>
+                            <td class="align-middle">
+                                <img src="{{ asset('images/products/' . $item['image']) }}" class="img-thumbnail"
+                                     width="100"
+                                     height="100"></td>
+                            <td class="align-middle"><h5>{{$item["quantity"]}}</h5></td>
+                            <td class="align-middle"><h5>${{$item["total_price"]}}</h5></td>
 
                         </tr>
                     @endforeach

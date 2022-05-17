@@ -20,6 +20,8 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
         ->name("users.products.index");
     Route::post("/search-products", "user\ProductsController@search")
         ->name("users.products.search");
+    Route::get("/show-details/{product_id}","user\ProductsController@detailsProduct")
+    ->name("users.products.details");
 
     /**
      * Guest Routes
@@ -49,12 +51,13 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
         Route::group(["prefix" => "cart"], function () {
 
             Route::get("/", "user\CartsController@index")->name("cart.index");
-            Route::post("/cart-item/{id}", "user\CartsController@store")->name("cart.store");
+            Route::post("/cart-item", "user\CartsController@store")->name("cart.store");
 //            Route::put("/update", "user\CartsController@update")->name("cart.update");
             Route::delete("/clear", "user\CartsController@clear")->name("cart.clear");
             Route::delete("/delete/{id}", "user\CartsController@destroy")->name("cart.destroy");
             Route::post("/add-to-order-details",
                 "user\CartsController@addCartItemsToOrderDetails")->name("cart.ordersDetails.add");
+            Route::post("/check-quantity","user\CartsController@checkQuantity");
             Route::get("/checkout", "user\CartsController@displayCheckoutPage")->name("cart.checkout.index");
             Route::post("/checkout", "user\CartsController@createOrderDetailsItem")->name("cart.checkout.store");
             Route::get("/checkQuantityCartItem", "user\CartsController@checkQuantityCartItem")->name("cart.checkQuantityCartItem");

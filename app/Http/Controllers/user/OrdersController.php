@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderDetails;
 use App\Models\Product;
+use App\Models\User;
 use Dompdf\Dompdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -77,16 +78,13 @@ class OrdersController extends Controller
 
         $orderDetailsArray = array();
 
-        $creatorId = $orderDetailsItems[0]["creator_id"];
-
         $totalPrice = 0;
         $previousTime = $orderDetailsItems[0]["time"];
-        $previousDate = $orderDetailsItems[0]["date"];
 
         $start = 0;
 
         foreach ($orderDetailsItems as $key => $item) {
-            if ($item["time"] == $previousTime && $previousDate == $item["date"]) {
+            if ($item["time"] == $previousTime) {
 
                 $start = 1;
 
@@ -96,7 +94,7 @@ class OrdersController extends Controller
                 $orderItemTemp["customer_phone"] = $item["customer_phone"];
 
                 /*To sum price has the same creator_id*/
-                $totalPrice += intval($item["item_price"]);
+                $totalPrice += intval($item["item_price"]) * $item["quantity"];
 
                 /*To get status order details item from order*/
                 $status = Order::select("status")
@@ -104,8 +102,8 @@ class OrdersController extends Controller
                     ->get()->toArray()[0]["status"];
 
                 $orderItemTemp["status"] = $status;
-                $orderItemTemp["date"] = $item["date"];
                 $orderItemTemp["time"] = $item["time"];
+                $orderItemTemp["date"] = $item["date"];
                 $orderDetailsItemTemp = $orderItemTemp;
 
                 if (!isset($orderDetailsItems[$key + 1])) {
@@ -113,9 +111,7 @@ class OrdersController extends Controller
                     array_push($orderDetailsArray, $orderDetailsItemTemp);
                 }
             } else if (
-                $item["time"] !== $previousTime
-                && $previousDate === $item["date"]
-            ) {
+                $item["time"] !== $previousTime) {
 
                 if ($start != 0) {
                     $orderDetailsItemTemp["total_price"] = $totalPrice;
@@ -126,7 +122,6 @@ class OrdersController extends Controller
 
                 /*Update time and date*/
                 $previousTime = $item["time"];
-                $previousDate = $item["date"];
 
                 $orderItemTemp["order_details_id"] = $item["id"];
                 $orderItemTemp["customer_name"] = $item["customer_name"];
@@ -134,7 +129,7 @@ class OrdersController extends Controller
                 $orderItemTemp["customer_phone"] = $item["customer_phone"];
 
                 /*To sum price has the same creator_id*/
-                $totalPrice += intval($item["item_price"]);
+                $totalPrice += intval($item["item_price"]) * $item["quantity"];
 
                 /*To get status order details item from order*/
                 $status = Order::select("status")
@@ -148,8 +143,7 @@ class OrdersController extends Controller
 
                 if (isset($orderDetailsItems[$key + 1])) {
                     if (
-                        $orderItemTemp["date"] == $orderDetailsItems[$key + 1]["date"]
-                        && $orderItemTemp["time"] != $orderDetailsItems[$key + 1]["time"]
+                        $orderItemTemp["time"] != $orderDetailsItems[$key + 1]["time"]
                     ) {
                         $orderDetailsItemTemp["total_price"] = $totalPrice;
                         array_push($orderDetailsArray, $orderDetailsItemTemp);
@@ -177,6 +171,8 @@ class OrdersController extends Controller
 
         $totalPrice = 0;
 
+        $creator = "";
+
         $orderDetailsItemsArr = array();
 
         $dateOrderDetailsItems = $orderItems[0]["created_at"];
@@ -186,15 +182,20 @@ class OrdersController extends Controller
                 ->get()->toArray()[0];
             $productItem = Product::where("id", $orderDetailsItems["product_id"])
                 ->get()->toArray()[0];
+            $creator = User::where("id", $productItem["creator_id"])->get("username")->toArray()[0]["username"];
+            $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
+            $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
             $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
             $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
             $orderDetailsItemsArr[$key]["total_price"] = intval($orderDetailsItems["item_price"]);
         }
 
 
+
         return view("orders.show")
             ->with(compact("orderDetailsItemsArr"))
-            ->with(compact("dateOrderDetailsItems"));
+            ->with(compact("dateOrderDetailsItems"))
+            ->with(compact("creator"));
     }
 
     public function printPdf($id)
