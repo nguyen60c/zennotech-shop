@@ -54,9 +54,13 @@
 
                 {{-- {{ddd($cart_items)}} --}}
                 @foreach ($listCartItems as $item)
-                    <input type="checkbox" data-name="{{ $item['name'] }}" data-productId="{{ $item['id'] }}"
+                    <input type="checkbox"
+                           data-name="{{ $item['name'] }}" data-productId="{{ $item['id'] }}"
                            data-creatorId="{{ $item['creator_id'] }}" data-cartId="{{ $item['cart_id'] }}"
-                           data-quantityCartItem="{{ $item['quantity_item'] }}" class="cart_item">
+                           data-quantityCartItem="{{ $item['quantity_item'] }}"
+                           onchange="selectedCrd({{$item["cart_id"]}})"
+                           onkeyup="selectedCrd({{$item["cart_id"]}})"
+                           class="cart_item cart_item_checkbox-{{$item["cart_id"]}}">
 
                     <div class="row">
                         <div class="col-lg-3">
@@ -74,12 +78,16 @@
                                 <span class="cart-item-price">{{ $item['price'] }}</span>
                                 <br>
                                 <b>Quantity: </b>
+                                <input type="hidden" value="{{$item['quantity_item']}}"
+                                       class="qty qty-{{$item["cart_id"]}}">
+                                <input type="hidden" value="{{$item['price']}}"
+                                       class="price price-{{$item["cart_id"]}}">
                                 <span class="product-quantity">
                                 {{ $item['quantity'] }}
                                 </span>
                                 <br>
                                 <b>Total: </b>
-                                <span class="total-price"></span>
+                                <span class="total-price-{{$item["cart_id"]}}">${{$item["price"]}}</span>
                                 <br>
                                 <a class="btn btn-warning"
                                    href="{{route("users.products.details",$item["id"])}}"
@@ -90,9 +98,18 @@
                             <div class="row" style="margin-left: 15px">
                                 <div class="form-group row">
                                     <span class="text-danger"></span>
-                                    <input type="number" class="form-control form-control-sm quantity_check_cart"
-                                           value="{{ $item['quantity_item'] }}" min="1" max="100" id="quantity"
-                                           name="quantity" style="width: 70px; margin-right: 10px;"/>
+                                    <form id="frm-{{$item["cart_id"]}}">
+                                        <input type="hidden" name="cart_id" value="{{$item["cart_id"]}}">
+                                        <input type="hidden" class="creator-{{$item["cart_id"]}}" name="cart_id" value="{{$item["creator_id"]}}">
+                                        <input type="hidden" class="product-{{$item["cart_id"]}}" name="cart_id" value="{{$item["id"]}}">
+                                        <input type="number"
+                                               class="form-control form-control-sm user_input_qty user_input_qty-{{$item["cart_id"]}}"
+                                               value="{{ $item['quantity_item'] }}" min="1" max="100" id="quantity"
+                                               name="quantity" style="width: 70px; margin-right: 10px;"
+                                               data-id="{{$item["cart_id"]}}"
+                                               onchange="updateQty({{$item["cart_id"]}})"
+                                               onkeyup="updateQty({{$item["cart_id"]}})"/>
+                                    </form>
                                 </div>
 
                                 <form action="{{ route('cart.destroy', $item['id']) }}" method="post">
@@ -102,7 +119,7 @@
                                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 </form>
                             </div>
-                            <p class="text-danger quantity-annouce" style="width: 260px"></p>
+                            <p class="text-danger quantity-annouce-{{$item["cart_id"]}}" style="width: 260px"></p>
                         </div>
                     </div>
                     <hr>
@@ -119,8 +136,8 @@
                 <div class="col-lg-5">
                     <div class="card">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item">
-                                <span class="cart-total"></span>
+                            <li class="list-group-item"><strong>Total:</strong>
+                                <span class="cart-total">$0</span>
                             </li>
                         </ul>
                     </div>
@@ -136,320 +153,159 @@
 
 @section('script')
     <script>
-        $(document).ready(function () {
 
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
 
-            var quantityCartItems = $(".quantity_check_cart");
-            var checkBoxCartItems = $(".cart_item");
-            var cartItemsTotalPrice = $(".cart-total");
-            var cartItemPrice = $(".cart-item-price")
-            var cartItemsPrice = $(".total-price");
-            var quanityAlert = $(".quantity-annouce");
+        let totalPriceItems = 0;
+        let cartItemTotalPriceTemp = 0;
 
+        function updateQty(id) {
 
-            var productItemArr = [];
+            setTimeout(function () {
+                $(".user_input_qty-" + id).prop('readonly', true)
+            }, 0)
 
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-
-
-            /*Catch event when user change quantity cart items*/
             $.ajax({
-                url: "{{ url('cart/checkQuantityCartItem') }}",
-                method: "GET",
-                dataType: "json",
+                url: "{{route("cart.ajax.updateQty")}}",
+                method: "POST",
+                data: $("#frm-" + id).serialize(),
                 success: function (res) {
-                    /*Default value when browser reload*/
-
-                    let priceCartItems = 0;
-                    let priceCartItem = 0;
-                    let totalPriceCartItems = 0;
-                    let totalPriceCartItemsArray = [];
-
-                    productItemArr = res;
-
-                    /*Contain list of checkbox which is selected by user*/
-                    selectedCartItems = [];
 
 
-                    /*Select/Remove all items in cart*/
-                    $('[name="all_cart_items"]').on('click', function (index) {
-                        // debugger;
-                        if ($(this).is(':checked')) {
-                            $.each($('.cart_item'), function (index) {
-                                $(this).prop('checked', true);
-                                totalPriceCartItems += parseInt(cartItemPrice.eq(index)
-                                        .text()) *
-                                    quantityCartItems.eq(index).val();
-                                cartItemsTotalPrice.text("Total: $" +
-                                    totalPriceCartItems)
-                                selectedCartItems.push(productItemArr[index]);
-                            });
-                        } else {
-                            $.each($('.cart_item'), function () {
-                                $(this).prop('checked', false);
-                                totalPriceCartItems = 0;
-                                cartItemsTotalPrice.text("Total: $" +
-                                    totalPriceCartItems);
-                                selectedCartItems.length = 0;
-                            });
-                        }
-                    });
+                    if (res["msg"] === "") {
+                        let cartItemTotalPrice = res["inputQty"] * res["price"];
+                        $(".total-price-" + id).text("$" + cartItemTotalPrice)
+                        $(".quantity-annouce-" + id).text("");
+                        $(".qty-" + id).val(res["inputQty"]);
+                        $(".price-" + id).val(res["price"]);
+                        $(".cart_item_checkbox-" + id).data("quantitycartitem", res["inputQty"]);
 
-                    /*Handle calculate checkbox cart items*/
-                    checkBoxCartItems.each(function (index) {
+                        totalPriceItems = 0;
+                        $(".user_input_qty").each(function (index) {
+                            let isSelected = $(".cart_item_checkbox-" + id).prop("checked");
 
-                        $(this).on("click", function () {
-                            // debugger
-                            if ($(this).is(':checked')) {
-                                $(this).prop('checked', true);
-                                $(".text-annouce").text("");
-                                priceCartItem = parseInt(cartItemPrice.eq(index)
-                                    .text());
-                                quantityCartItem = quantityCartItems.eq(index).val();
-                                totalPriceCartItems_second_temp += priceCartItem * quantityCartItem;
-                                cartItemsTotalPrice.text("Total: $" +
-                                    totalPriceCartItems_second_temp)
-                            } else {
-                                $(this).prop('checked', false);
-                                $('[name="all_cart_items"]').prop("checked", false)
-                                priceCartItem = parseInt(cartItemPrice.eq(index)
-                                    .text());
-                                quantityCartItem = quantityCartItems.eq(index).val();
-                                console.log(totalPriceCartItems_second_temp)
-                                totalPriceCartItems_second_temp -= priceCartItem * quantityCartItem;
-                                totalPriceCartItems_second_temp = totalPriceCartItems_second_temp >= 0 ?
-                                    totalPriceCartItems_second_temp : 0;
-                                cartItemsTotalPrice.text("Total: $" +
-                                    totalPriceCartItems_second_temp)
+                            if (isSelected) {
+                                let quantityItem = $(".qty").eq(index).val();
+                                let PriceItem = $(".price").eq(index).val();
+
+                                totalPriceItems += quantityItem * PriceItem;
+                                $(".cart-total").text("$" + totalPriceItems);
                             }
 
                         })
+                    } else if (res["msg"] === "Your quantity is invalid") {
+                        $(".quantity-annouce-" + id).text("Your input is invalid value!. Please try again.")
+                    } else if (res["msg"] === "Your quantity is out of bound") {
 
-                    })
+                        $(".quantity-annouce-" + id).text("Your quantity is out of bound.")
+                    }
 
-                    var inputQuantityElements = [];
-
-                    /*Handle display and calculate total price of cart items*/
-                    cartItemsPrice.each(function (index) {
-
-                        var priceCartItem = quantityCartItems.eq(index).val() *
-                            productItemArr[index]["price"];
-
-                        /*Display price cart item*/
-                        $(this).text("$" + priceCartItem);
-
-                        /*Display total price cart items*/
-                        cartItemsTotalPrice.text("Total: $" + 0)
-                    })
-
-                    var totalPriceCartItems_second = 0;
-                    var totalPriceCartItems_second_temp = 0
-
-                    /*Check quantity when user input value into quantity of cart item*/
-                    quantityCartItems.each(function (index) {
-
-
-                        // Handle caculate after change input
-                        // Get old value input
-                        let oldValueInputCartItem = [];
-                        quantityCartItems.each(function (index) {
-                            oldValueInputCartItem.push(quantityCartItems.eq(index)
-                                .val());
-                        })
-                        totalPriceCartItems_second = 0;
-                        var count = 0;
-
-
-                        /*Bugs*/
-                        quantityCartItems.change(function () {
-                            // totalPriceCartItems = 0;
-                            // debugger;
-
-                            var arrayCheck = [];
-
-                            /*Get quantity cart item when user input value*/
-                            var inputQuantityCartItem = quantityCartItems.eq(index)
-                                .val();
-                            var inputNameCartItem = $(".product-name").eq(index).text();
-
-                            arrayCheck.push(inputQuantityCartItem, inputNameCartItem);
-
-                            /*Reset total price item every event*/
-                            resultPriceCartItem = 0;
-                            resultPriceCartItemsTotal = 0;
-                            var priceCartItems = 0;
-
-
-                            $.ajax({
-                                method: "POST",
-                                url: "{{ url('cart/check-quantity') }}",
-                                dataType: "json",
-                                data: {
-                                    arrayCheck
-                                },
-                                success: function (numberResult) {
-
-                                    var latestQuantityProduct = numberResult[1];
-                                    $(".product-quantity").eq(index).text(latestQuantityProduct);
-                                    if (numberResult[0] === 0) {
-                                        if (checkBoxCartItems.eq(index).is(':checked')) {
-                                            $(".text-annouce").text("");
-                                            if (index === 0) {
-                                                totalPriceCartItems_second = 0;
-                                                totalPriceCartItems_second_temp = 0;
-                                            }
-                                            var price = parseInt(cartItemPrice.eq(index).text());
-                                            quantityCartItem = quantityCartItems.eq(index).val();
-                                            totalPriceCartItems_second_temp +=
-                                                price *
-                                                quantityCartItem;
-                                            cartItemsTotalPrice.text("Total: $" +
-                                                totalPriceCartItems_second_temp)
-
-                                            priceCartItems = inputQuantityCartItem *
-                                                productItemArr[index]["price"];
-
-                                            resultPriceCartItem += priceCartItems;
-                                            cartItemsPrice.eq(index).text("$" +
-                                                resultPriceCartItem);
-
-                                        } else {
-
-                                            quantityCartItem = quantityCartItems.eq(index).val();
-                                            priceCartItems = inputQuantityCartItem *
-                                                productItemArr[index]["price"];
-                                            resultPriceCartItem += priceCartItems;
-                                            cartItemsPrice.eq(index).text("$" +
-                                                resultPriceCartItem);
-                                        }
-                                        quanityAlert.eq(index).text("")
-
-                                    } else if (numberResult[0] === 1) {
-
-                                        quantityCartItems.eq(index).val(1);
-
-                                        if (inputQuantityCartItem !== "") {
-                                            quanityAlert.eq(index).text("There are only " +
-                                                productItemArr[index]["quantity"] +
-                                                " products!");
-                                        } else {
-                                            quanityAlert.eq(index).text("Can not empty this field");
-                                        }
-                                    }
-                                }
-                            })
-                        });
-                    })
                 }
             })
 
-            /*Catch event when user want to see checkout page*/
-            $(".btn-process").click(function (e) {
+            setTimeout(function () {
+                $(".user_input_qty-" + id).prop('readonly', false)
+            }, 1000)
+        }
 
-                cart_item_quantity = [];
+        totalPriceItems = 0;
+        /*Select all cart items*/
+        $('[name="all_cart_items"]').on('click', function () {
 
-                selectedCartItem = $(".cart_item:checked");
+            if ($(this).is(':checked')) {
+                $.each($('.cart_item'), function (index) {
+                    $(this).prop('checked', true);
 
-                /*Update quantity*/
+                    let userInputQty = $(".qty").eq(index).val();
+                    let cartItemPrice = $(".price").eq(index).val();
 
-                $(".quantity_check_cart").each(function (index) {
-                    $(".cart_item").eq(index).data("quantitycartitem", $(this).val());
-                })
-
-                selectedCartItem.each(function (index) {
-
-                    if (selectedCartItem.eq(index).data("quantitycartitem") > 0) {
-
-                        myObjec = {
-                            userInputQuantity: selectedCartItem.eq(index).data("quantitycartitem"),
-                            creatorId: selectedCartItem.eq(index).data("creatorid"),
-                            cartId: selectedCartItem.eq(index).data("cartid"),
-                            productId: selectedCartItem.eq(index).data("productid")
-                        }
-                        cart_item_quantity.push(myObjec);
-
-                    }
+                    totalPriceItems += userInputQty * cartItemPrice;
+                    $(".cart-total").text("$" + totalPriceItems);
                 });
+            } else {
+                $.each($('.cart_item'), function () {
+                    $(this).prop('checked', false);
+                    totalPriceItems = 0;
+                    $(".cart-total").text("$" + 0);
+                });
+            }
+        });
 
-                if (cart_item_quantity.length > 0) {
-                    $.ajax({
-                        method: "POST",
-                        url: "{{ url('cart/add-to-order-details') }}",
-                        dataType: "json",
-                        data: {
-                            cart_item_quantity,
-                        },
-                        success: function (res) {
-                            if (res[0]) {
-                                window.location.href = "{{route("cart.checkout.index")}}";
-                            } else if (res[0] === false) {
-                                $(".announce_quantity_result").text("You must choose product have the same seller !!");
-                            }
-                        }
-                    });
-                } else {
-                    $(".text-annouce").text("You have not choose any cart items to order")
+        /*Reset total price items*/
+        totalPriceItems = 0;
+
+        /*Select and calculate selected cart items*/
+        function selectedCrd(id) {
+
+            let isSelected = $(".cart_item_checkbox-" + id).prop("checked");
+
+
+            let userInputQty = $(".qty-" + id).val();
+            let cartItemPrice = $(".price-" + id).val();
+
+            if (isSelected) {
+                totalPriceItems += userInputQty * cartItemPrice;
+                $(".cart-total").text("$" + totalPriceItems);
+            } else {
+                totalPriceItems -= userInputQty * cartItemPrice;
+                $(".cart-total").text("$" + totalPriceItems);
+                $('[name="all_cart_items"]').prop("checked",false);
+            }
+        }
+
+
+        $(".btn-process").click(function () {
+
+            let request = [];
+
+            $(".cart_item:checked").each(function (index) {
+                let clSelectedCartItem = $(this).attr("class");
+                let cartId = clSelectedCartItem.split("-")[1];
+                let productId = $(".product-" + cartId).val();
+                let qtyItem = $(".user_input_qty-" + cartId).val();
+                let creatorId = $(".creator-" + cartId).val();
+
+                console.log(cartId)
+                if (qtyItem > 0) {
+                    myObjec = {
+                        userInputQuantity: qtyItem,
+                        creatorId: creatorId,
+                        cartId: cartId,
+                        productId: productId
+                    }
+
+                    request.push(myObjec);
                 }
 
-                if (typeof flat != "undefined") {
-                    console.log("hello world")
-                }
             })
 
-            $(".btn-back").click(function (e) {
-
-                cart_item_quantity = [];
-
-                selectedCartItem = $(".cart_item:checked");
-
-                /*Update quantity*/
-
-                $(".quantity_check_cart").each(function (index) {
-                    $(".cart_item").eq(index).data("quantitycartitem", $(this).val());
-                    console.log($(".cart_item").eq(index).data("quantitycartitem"))
-                })
-
-                selectedCartItem.each(function (index) {
-
-                    if (selectedCartItem.eq(index).data("quantitycartitem") > 0) {
-
-                        myObjec = {
-                            userInputQuantity: selectedCartItem.eq(index).data("quantitycartitem"),
-                            creatorId: selectedCartItem.eq(index).data("creatorid"),
-                            cartId: selectedCartItem.eq(index).data("cartid"),
-                            productId: selectedCartItem.eq(index).data("productid")
-                        }
-                        cart_item_quantity.push(myObjec);
-
-                    }
-                });
-
+            console.log(request.length)
+            if(request.length > 0){
                 $.ajax({
+                    url: "{{route("cart.ordersDetails.add")}}",
                     method: "POST",
-                    url: "{{ url('cart/add-to-order-details') }}",
                     dataType: "json",
-                    data: {
-                        cart_item_quantity,
+                    data:{
+                        request
                     },
                     success: function (res) {
-                        if (res) {
-                            window.location.href = "{{route("users.products.index")}}";
+                        console.log(res)
+                        if (res[0]) {
+                            window.location.href = "{{route("cart.checkout.index")}}";
+                        } else if (res[0] === false) {
+                            $(".announce_quantity_result").text("You must choose product have the same seller !!");
                         }
                     }
                 })
-
-                if (typeof flat != "undefined") {
-                    console.log("hello world")
-                }
-            })
-
-            /*When user click Proceed to Checkout button*/
+            }
 
 
         })
+
+
     </script>
 @endsection

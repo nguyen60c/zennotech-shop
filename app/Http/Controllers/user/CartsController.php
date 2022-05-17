@@ -124,6 +124,7 @@ class CartsController extends Controller
         return redirect()->route("cart.index");
     }
 
+    /*using ajax*/
     /*Add cart items to order_details after click proceed to checkout*/
     public function addCartItemsToOrderDetails(Request $request)
     {
@@ -203,6 +204,7 @@ class CartsController extends Controller
     public function displayCheckoutPage(Request $request)
     {
 
+//        return 123;
         $cartItem = Cart::where("user_id", $this->getUserId())
             ->orderBy('updated_at', 'DESC')->first();
 
@@ -232,6 +234,41 @@ class CartsController extends Controller
             ->with(compact("time_created"));
     }
 
+    /*Using with ajax*/
+    public function updateQty(Request $request){
+
+        $cartItem = Cart::where("id",$request->cart_id)->get()->toArray()[0];
+        $productItem = Product::where("id",$cartItem["product_id"])->first()->toArray();
+
+        if($request->quantity < 0 || $request->quantity === ""){
+            return [
+                "price" => $productItem["price"],
+                "qty" => $productItem["quantity"],
+                "msg" => "Your quantity is invalid"
+            ];
+        }
+
+        if($request->quantity <= $productItem["quantity"]
+            && $productItem["quantity"] > 0){
+            return [
+                "price" => $productItem["price"],
+                "qty" => $productItem["quantity"],
+                "inputQty" => $request->quantity,
+                "msg" => ""
+            ];
+        }else{
+            return [
+                "price" => $productItem["price"],
+                "qty" => $productItem["quantity"],
+                "inputQty" => $request->quantity,
+                "msg" => "Your quantity is out of bound"
+            ];
+        }
+
+    }
+
+
+    /*Using with ajax*/
     public function checkQuantityCartItem()
     {
         $cart_item_list = Cart::where("user_id", $this->getUserId())->get()->toArray();
