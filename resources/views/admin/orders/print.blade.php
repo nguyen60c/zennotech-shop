@@ -9,161 +9,123 @@
 </head>
 <body>
 <div class="main">
-    @include("admin.layouts.partials.menu-navbar-toggle")
-    <div class="body flex-grow-1" style="margin-top: 10px">
+    <nav class="navbar navbar-expand navbar-light navbar-bg">
+        <a class="sidebar-toggle js-sidebar-toggle">
+            <i class="hamburger align-self-center"></i>
+        </a>
+    </nav>
+    <div class="body flex-grow-1" style="padding-right: 5rem">
         <h1>Orders</h1>
-        <div class="container bg-secondary bg-opacity-10 p-2" style="border-radius: 10px;">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">Time Created</th>
-                    <th scope="col">Products</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">Total</th>
-                    <th scope="col"><span style="display: inline-block;width: 105px">Status</span>
-                        Action
-                    </th>
+        <div class="body flex-grow-1">
+            <h1>Orders</h1>
 
-                </tr>
-                </thead>
-                <tbody>
+            <div class="container bg-secondary bg-opacity-10 p-4" style="border-radius: 10px;">
 
-                <?php $old_val = "" ?>
-                <?php $limit = 0 ?>
-                <?php $total_price = 0 ?>
-                <?php $old_val_num = 0 ?>
-                <?php $test = []; ?>
+                <div style="display: flex;justify-content: flex-start;">
+                    <h4 style="margin-right: 20px">Date: {{date('d-m-Y', strtotime($dateOrderDetailsItems))}}</h4>
+                    <h4 style="margin-right: 20px">Time: {{date('H:m:s', strtotime($dateOrderDetailsItems))}}</h4>
 
-                @if(count($arr_temp) > 0)
-                    @foreach($arr_temp as $key => $order)
+                    <div>
 
-                        <?php $next = next($arr_temp);?>
-                        @if($order["position"] == array_search($order["time"],$unique_val_arr)
-                            && $old_val == $order["position"])
-                            <tr style="margin: auto;">
+                        <input class="input_status border-0 transparent-input"
+                               type="hidden" readonly
+                               value="">
 
-                                <td class="align-middle">{{ $order["time"] }}</td>
-                                <td class="align-middle">{{ date('h:i:s A', strtotime($order["created_at"])) }}</td>
-                                <td class="align-middle">{{$order["product_name"]}}</td>
-                                <td class="align-middle">{{$order["quantity"]}}</td>
-                                <td class="align-middle">${{number_format($order["total"])}}</td>
+                        <?php
+                        $color = "";
+                        switch ($orderDetailsItemsStatus) {
+                            case "Processing":
+                                $color = "bg-primary";
+                                break;
+                            case "Shipping":
+                                $color = "bg-warning";
+                                break;
+                            case "Cancel":
+                                $color = "bg-danger";
+                                break;
+                        }
+                        ?>
+                        <select name="status"
+                                class="form-control text-light select_status {{$color}}"
+                                style="font-weight: 700; width: 150px !important;">
 
-                                <td class="align-middle text-danger bolder">
-                                    <form method="post"
-                                          action="{{route("admin.orders.showOrderDetailsItem",$order["user_id"])}}">
-                                        @csrf
+                            <option {{$orderDetailsItemsStatus == "Processing" ? "selected" : ""}}
+                                    value="Processing" style="background: #a0aec0">
+                                Processing
+                            </option>
 
-                                        <input type="text" name="status" value="{{$order["status"]}}" readonly
-                                               class="transparent-input"
-                                               style="width: 100px">
-                                        <input type="hidden" name="product_name" class="input_status"
-                                               value="{{$order["product_name"]}}"/>
-                                        <input type="hidden" name="status" class="input_status"
-                                               value="{{$order["status"]}}"/>
-                                        <input type="hidden" name="user_id" class="input_user_id"
-                                               value="{{$order["user_id"]}}"/>
-                                        <input type="hidden" name="order_details_id"
-                                               class="input_order_details_id" value="{{$order["id"]}}"/>
+                            <option {{$orderDetailsItemsStatus == "Shipping" ? "selected" : ""}}
+                                    value="Shipping">
+                                Shipping
+                            </option>
 
-                                        <a type="submit" class="btn btn-primary"
-                                           href="{{route("admin.orders.showOrderDetailsItem",$order["id"])}}">
-                                            Details
-                                        </a>
-                                    </form>
+                            <option {{$orderDetailsItemsStatus == "Cancel" ? "selected" : ""}}
+                                    value="Cancel">
+                                Cancel
+                            </option>
 
-                                </td>
+                        </select>
 
-                            </tr>
-                            <?php
-                            if ($order["status"] == "Cancel") {
-                                $total_price = $total_price + 0;
-                            } else {
-                                $total_price = $total_price + $order["total"];
-                            }
-                            ?>
-                            <?php
-                            $next_val = $next["time"] ?? "next_val";
-                            $cur_val = $order["time"] ?? "cur_val";
-                            ?>
-                            @if($next_val != $cur_val)
-                                <tr style="margin: auto;border-style: none">
-                                    <td class="align-middle" style="border:transparent !important;">
-                                        <strong>Total: {{$total_price}} </strong>
-                                        <?php $total_price = 0 ?>
-                                    </td>
-                                </tr>
-                            @endif
+                    </div>
+                </div>
+                <div>
+                    <h4>Customer: {{$customerName}}</h4>
+                    <h4>Address: {{$customerAddress}}</h4>
+                    <h4>Phone: {{$customerPhone}}</h4>
+                </div>
 
-                        @elseif($order["position"] ==
-                            array_search($order["time"],$unique_val_arr)
-                            && $old_val != $order["position"])
-                            @if($limit > 0)
-                                <tr style="margin: auto;">
-                                    <td class="align-middle" style="border-bottom-width:0">
-                                        <br></td>
-                                </tr>
-                            @endif
+                <table class="table" style="margin-top: 40px">
+                    <thead>
+                    <tr>
+                        <th scope="col">Image</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
 
-                            <?php ++$limit ?>
+                    <?php $old_val = "" ?>
+                    <?php $limit = 0 ?>
+                    <?php $total_price = 0 ?>
+                    <?php $old_val_num = 0 ?>
+                    <?php $test = []; ?>
 
-                            <tr style="margin: auto;">
-                                <td class="align-middle">{{ $order["time"] }}</td>
-                                <td class="align-middle">{{ date('h:i:s A', strtotime($order["created_at"])) }}</td>
-                                <td class="align-middle">{{$order["product_name"]}}</td>
-                                <td class="align-middle">{{$order["quantity"]}}</td>
-                                <td class="align-middle">${{number_format($order["total"])}}</td>
 
-                                <td class="align-middle text-danger bolder">
-                                    <form>
-                                        <input type="text" name="status" value="{{$order["status"]}}" readonly
-                                               class="transparent-input"
-                                               style="width: 100px">
-                                        <input type="hidden" name="product_name" class="input_status"
-                                               value="{{$order["product_name"]}}"/>
-                                        <input type="hidden" name="status" class="input_status"
-                                               value="{{$order["status"]}}"/>
-                                        <input type="hidden" name="user_id" class="input_user_id"
-                                               value="{{$order["user_id"]}}"/>
-                                        <input type="hidden" name="order_details_id"
-                                               class="input_order_details_id" value="{{$order["id"]}}"/>
-                                        <a type="submit" class="btn btn-primary"
-                                           href="{{route("admin.orders.showOrderDetailsItem",$order["id"])}}">
-                                            Details
-                                        </a>
-                                    </form>
-                                </td>
+                    @foreach( $orderDetailsItemsArr as $item)
 
-                                <?php $old_val = $order["position"] ?>
-                            </tr>
-                        @endif
+                        <tr style="margin: auto;">
+
+                            <td class="align-middle">{{$item["name"]}}</td>
+
+                            <td>
+                                <img src="{{ asset('images/products/' . $item['image']) }}" class="img-thumbnail"
+                                     width="100"
+                                     height="100">
+                            </td>
+                            <td class="align-middle">{{$item["price"]}}</td>
+                            <td class="align-middle">{{$item["quantity"]}}</td>
+                            <td class="align-middle">${{$item["total_price"]}}</td>
+
+                        </tr>
                     @endforeach
 
-                    <tr>
-                        <td class="align-middle text-danger bolder"
-                            style="border-bottom-width:0">
+                    </tbody>
+                </table>
+            </div>
+            <form method="post" action="{{route("admin.orders.update")}}">
+                @csrf
+                <input type="hidden" name="status" class="input_status"
+                       value="{{$orderDetailsItemsStatus}}"/>
+                <input type="hidden" name="user_id" class="input_user_id"
+                       value="{{$userId}}"/>
+                <input type="hidden" name="time" class="input_user_time"
+                       value="{{$time}}"/>
+                <button class="btn btn-primary" type="submit"><strong>Save</strong></button>
+                <a href="{{ route('admin.orders.history') }}" class="btn btn-default">Back</a>
 
-                            <a href="{{route("admin.orders.print",$order["id"])}}"
-                               class="btn btn-primary form-control">Print</a>
-
-                        </td>
-
-
-                    </tr>
-                @else
-
-                    <tr>
-
-                        <td>
-
-                            <span class="text-danger">There is no order details in this user</span>
-                        </td>
-                    </tr>
-
-                @endif
-                </tbody>
-            </table>
-        </div>
+            </form>
     </div>
 
     @if(session()->has('success'))

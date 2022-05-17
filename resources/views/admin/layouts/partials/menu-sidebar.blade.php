@@ -41,10 +41,20 @@
 
             @hasanyrole("admin|seller")
 
+            @role("seller")
             <li class="sidebar-item active">
                 <a class="sidebar-link" href="{{route("admin.products.index")}}">
                     <i class="fa-solid fa-cubes"></i>
                     <span class="align-middle">Products</span>
+                </a>
+            </li>
+            @endrole
+
+
+            <li class="sidebar-item active">
+                <a class="sidebar-link" href="{{route("admin.orders.history")}}">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span class="align-middle">Recently Orders</span>
                 </a>
             </li>
 

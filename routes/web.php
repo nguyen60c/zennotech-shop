@@ -18,6 +18,10 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
     /*Customer Routes*/
     Route::get("/", "user\ProductsController@index")
         ->name("users.products.index");
+    Route::post("/search-products", "user\ProductsController@search")
+        ->name("users.products.search");
+    Route::get("/show-details/{product_id}","user\ProductsController@detailsProduct")
+    ->name("users.products.details");
 
     /**
      * Guest Routes
@@ -47,19 +51,22 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
         Route::group(["prefix" => "cart"], function () {
 
             Route::get("/", "user\CartsController@index")->name("cart.index");
-            Route::post("/cart-item/{id}", "user\CartsController@store")->name("cart.store");
+            Route::post("/cart-item", "user\CartsController@store")->name("cart.store");
 //            Route::put("/update", "user\CartsController@update")->name("cart.update");
             Route::delete("/clear", "user\CartsController@clear")->name("cart.clear");
             Route::delete("/delete/{id}", "user\CartsController@destroy")->name("cart.destroy");
-            Route::post("/switch-to-checkout", "user\CartsController@switchToCheckoutPage")->name("cart.checkout.switch");
+            Route::post("/add-to-order-details",
+                "user\CartsController@addCartItemsToOrderDetails")->name("cart.ordersDetails.add");
+            Route::post("/check-quantity","user\CartsController@checkQuantity");
             Route::get("/checkout", "user\CartsController@displayCheckoutPage")->name("cart.checkout.index");
-            Route::post("/checkout", "user\CartsController@storeCartItems")->name("cart.checkout.store");
+            Route::post("/checkout", "user\CartsController@createOrderDetailsItem")->name("cart.checkout.store");
             Route::get("/checkQuantityCartItem", "user\CartsController@checkQuantityCartItem")->name("cart.checkQuantityCartItem");
         });
 
 
         Route::group(["prefix" => "user/order"], function () {
             Route::get("/", "user\OrdersController@index")->name("users.order.index");
+            Route::get("/show/{orderDetailItem_id}","user\OrdersController@show")->name("users.order.show");
             Route::get("/print", "user\OrdersController@printPdf")->name("users.order.print");
         });
 
@@ -107,17 +114,20 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
              * Orderss Routes
              */
             Route::group(["prefix" => "orders"], function () {
-                Route::get("/{user_id}", "admin\OrdersController@index")
+                Route::get("/{id}", "admin\OrdersController@index")
                     ->name("admin.orders.index");
 //                Route::get("/list","admin\OrdersController@show")
 //                    ->name("admin.orders.show");
-                Route::get("/print/{order_id}", "admin\OrdersController@printPdf")
+                Route::get("/print/{id}", "admin\OrdersController@printPdf")
                     ->name("admin.orders.print");
                 Route::get("/{order_details_id}/show",
-                    "admin\OrdersController@showSpecifiedOrder_Details_item")
-                    ->name("admin.orders.showOrderDetailsItem");
+                    "admin\OrdersController@displayOrderDetailsItem")
+                    ->name("admin.orders.displayOrderDetailsItem");
                 Route::post("/update", "admin\OrdersController@update")
                     ->name("admin.orders.update");
+                Route::get("order/history/show","admin\OrdersController@ordersHistory")->name("admin.orders.history");
+                Route::get("order/history/show-details/{id}","admin\OrdersController@showDetailsOrderItemsHistory")->name("admin.orders.details");
+                Route::post("order/history/show-details/{id}","admin\OrdersController@showDetailsOrderItemsHistory")->name("admin.orders.details");
             });
 
             Route::resource('roles', "admin\RolesController");

@@ -20,6 +20,7 @@ class CreateCartTable extends Migration
             $table->bigInteger("product_id");
             $table->bigInteger("quantity");
             $table->bigInteger("price");
+            $table->bigInteger("creator_id");
             $table->timestamps();
         });
     }

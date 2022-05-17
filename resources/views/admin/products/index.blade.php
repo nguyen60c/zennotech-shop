@@ -25,11 +25,11 @@
                 </tr>
 
                 {{--To sign order number in list--}}
-                <?php $page = $_GET["page"];
+                <?php $page = isset($_GET["page"]) ? $_GET["page"] : 0;
 
                 if($page == 1){
                     $page = 0;
-                } else{
+                } else if($page > 1){
                     $page = 8;
                 }
 

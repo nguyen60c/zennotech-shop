@@ -19,6 +19,7 @@ class CreateOrderDetailsTable extends Migration
             $table->bigInteger("user_id");
             $table->bigInteger("product_id");
             $table->bigInteger("item_price");
+            $table->bigInteger("creator_id");
             $table->string("customer_name");
             $table->string("customer_address");
             $table->string("customer_phone");
