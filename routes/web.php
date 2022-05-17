@@ -61,6 +61,7 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
             Route::get("/checkout", "user\CartsController@displayCheckoutPage")->name("cart.checkout.index");
             Route::post("/checkout", "user\CartsController@createOrderDetailsItem")->name("cart.checkout.store");
             Route::get("/checkQuantityCartItem", "user\CartsController@checkQuantityCartItem")->name("cart.checkQuantityCartItem");
+            Route::post("/updateQty","user\CartsController@updateQty")->name("cart.ajax.updateQty");
         });
 
 
