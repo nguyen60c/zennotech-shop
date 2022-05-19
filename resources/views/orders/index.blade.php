@@ -5,7 +5,7 @@
 @section('content')
     @auth
         <div class="body flex-grow-1" style="padding-right: 5rem">
-            <h1>Your Orders</h1>
+            <h1>Orders</h1>
             <div class="container bg-secondary bg-opacity-10 p-4" style="border-radius: 10px;">
                 <table class="table">
                     <thead>
@@ -17,7 +17,9 @@
                         <th scope="col">Phone Number</th>
                         <th scope="col">Total Price</th>
                         <th scope="col">Status</th>
+                        <th scope="col">Payment</th>
                         <th scope="col">Details</th>
+                        <th scope="col">Print</th>
 
                     </tr>
                     </thead>
@@ -40,8 +42,6 @@
                             <td></td>
                             <td></td>
                             <td></td>
-{{--                            <td></td>--}}
-
                         </tr>
                     @endif
 
@@ -67,12 +67,16 @@
                             @endif
 
                             <?php $paramOrderShow = $item["date"] . "|" . $item["time"] ?>
-
+                            <td class="align-middle">{{$item["payment_method"]}}</td>
                             <td class="align-middle">
                                 <a href="{{route("users.order.show",
                                 $paramOrderShow)}}" class="btn btn-primary">Details</a>
                             </td>
-
+                            <td class="align-middle">
+                                <a href="{{route("users.order.print",$paramOrderShow)}}">
+                                    <i class="fa-solid fa-print"></i>
+                                </a>
+                            </td>
                         </tr>
                     @endforeach
 

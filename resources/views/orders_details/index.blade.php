@@ -41,6 +41,16 @@
                         <span class="text-danger text-left">{{ $errors->first('customer_phone') }}</span>
                     @endif
 
+                    <label style="margin-top: 10px" for="payment">Choose payment methods:</label>
+                    <select name="payment"
+                            class="payment-method"
+                            style="font-weight: 700; width: 150px !important;">
+
+                        <option value="COD" style="background: #a0aec0">
+                            COD (Cash on Delivery)
+                        </option>
+                    </select>
+
                 </div>
 
                 <div class="container bg-secondary bg-opacity-10 p-4 col" style="border-radius: 10px;">
@@ -99,6 +109,7 @@
                                 <input type="hidden" value="" class="input-name-hidden" name="name_customer">
                                 <input type="hidden" value="" class="input-address-hidden" name="customer_address">
                                 <input type="hidden" value="" class="input-phone-hidden" name="customer_phone">
+                                <input type="hidden" value="COD" class="payment-hidden" name="payment_method">
                                 <button type="submit"
                                         class="btn btn-primary">
                                     Order
@@ -132,6 +143,7 @@
             var input_name = $(".input_name");
             var input_address = $(".input_address");
             var input_phone = $(".input_phone");
+            var selected_payment = $(".payment-method");
 
             input_name.change(function(){
                 $(".input-name-hidden").val($(this).val());
@@ -143,6 +155,10 @@
 
             input_phone.change(function(){
                 $(".input-phone-hidden").val($(this).val());
+            })
+
+            selected_payment.change(function(){
+                $(".payment-hidden").val($(this).val());
             })
 
         });

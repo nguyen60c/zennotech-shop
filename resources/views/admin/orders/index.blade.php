@@ -6,7 +6,6 @@
         @include("admin.layouts.partials.menu-navbar-toggle")
         <div class="body flex-grow-1" style="padding-right: 5rem">
             <h1>Orders</h1>
-            <h4><a href="{{route("admin.orders.print",$userId)}}">Print Order</a> </h4>
             <div class="container bg-secondary bg-opacity-10 p-4" style="border-radius: 10px;max-width: 1040px">
                 <table class="table">
                     <thead>
@@ -19,6 +18,7 @@
                         <th scope="col">Total Price</th>
                         <th scope="col">Status</th>
                         <th scope="col">Details</th>
+                        <th scope="col">Print</th>
 
                     </tr>
                     </thead>
@@ -73,6 +73,11 @@
                             <td class="align-middle">
                                 <a href="{{route("admin.orders.displayOrderDetailsItem",
                                 $paramOrderShow)}}" class="btn btn-primary">Details</a>
+                            </td>
+                            <td class="align-middle">
+                                <a href="{{route("admin.orders.print",$paramOrderShow)}}">
+                                    <i class="fa-solid fa-print"></i>
+                                </a>
                             </td>
 
                         </tr>

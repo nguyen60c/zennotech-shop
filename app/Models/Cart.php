@@ -25,5 +25,13 @@ class Cart extends Model
         return $this->hasMany(Product::class,"product_id","id");
     }
 
+    public function totalItems(){
+        return Cart::all();
+    }
+
+    public function totalDistinctItems(){
+        return Cart::select("product_id")->distinct()->get();
+    }
+
 }
 
