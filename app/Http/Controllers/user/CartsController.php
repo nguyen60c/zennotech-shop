@@ -80,15 +80,24 @@ class CartsController extends Controller
 
 
         $cart_item = Cart::where("product_id", $request->productId)
-            ->where("user_id", $this->getUserId());
+            ->where("user_id", $this->getUserId());;
+
 
         $is_empty = $cart_item->get()->toArray();
 
 
-        $this->createCartItem($is_empty, $cart_item, $request->productId);
+        $msg = $this->createCartItem($is_empty, $cart_item, $request->productId);
 
+        $cartItemsTotal = $this->cart->totalDistinctItems();
+        $cartItemsTotal = count($cartItemsTotal);
 
-        return 0;
+        $result = [
+            0,
+            $cartItemsTotal,
+            $msg
+        ];
+
+        return $result;
     }
 
     /*
@@ -139,7 +148,7 @@ class CartsController extends Controller
 
                 if (isset($itemArr[$key + 1])) {
                     if ($item["creatorId"] != $itemArr[$key + 1]["creatorId"]) {
-                        array_push($flat,false);
+                        array_push($flat, false);
                     }
                 }
             }
@@ -150,12 +159,13 @@ class CartsController extends Controller
 
             foreach ($itemArr as $key => $item) {
 
-                // array_push($test, $key);
+                $qtyProd = Product::where("id", $item["productId"])->get("quantity")[0]["quantity"];
+                $qtyUpd = $item["userInputQuantity"] <= $qtyProd ? $item["userInputQuantity"] : $qtyProd;
+
                 Cart::where("id", $item["cartId"])
                     ->where("product_id", $item["productId"])
-                    ->update(["quantity" => $item["userInputQuantity"]]);
-                array_push($flat,true ,$item["cartId"]);
-
+                    ->update(["quantity" => $qtyUpd]);
+                array_push($flat, true, $item["cartId"]);
             }
         }
         return $flat;
@@ -178,13 +188,14 @@ class CartsController extends Controller
             array_shift($cartId);
         }
 
+
         $validation = $request->validate([
             'name_customer' => 'required|min:3',
             'customer_address' => 'required|min:5',
-            'customer_phone' => 'required|regex:/(0)[0-9]{9}/'
+            'customer_phone' => 'required|regex:/(0)[0-9]{9}/',
+            'payment_method' => ""
         ]);
 
-        $test = array();
         foreach ($cartId as $item) {
             $cart = Cart::where("user_id", $this->getUserId())
                 ->where("id", $item)
@@ -204,7 +215,6 @@ class CartsController extends Controller
     public function displayCheckoutPage(Request $request)
     {
 
-//        return 123;
         $cartItem = Cart::where("user_id", $this->getUserId())
             ->orderBy('updated_at', 'DESC')->first();
 
@@ -225,22 +235,26 @@ class CartsController extends Controller
             array_push($this->data, (array)$product);
         }
 
+        $cartItems = $this->cart->totalDistinctItems();
+
         $data = $this->data;
         $total = $this->total_price;
 
         return view("orders_details.index")
             ->with(compact("data"))
             ->with(compact("total"))
+            ->with(compact("cartItems"))
             ->with(compact("time_created"));
     }
 
     /*Using with ajax*/
-    public function updateQty(Request $request){
+    public function updateQty(Request $request)
+    {
 
-        $cartItem = Cart::where("id",$request->cart_id)->get()->toArray()[0];
-        $productItem = Product::where("id",$cartItem["product_id"])->first()->toArray();
+        $cartItem = Cart::where("id", $request->cart_id)->get()->toArray()[0];
+        $productItem = Product::where("id", $cartItem["product_id"])->first()->toArray();
 
-        if($request->quantity < 0 || $request->quantity === ""){
+        if ($request->quantity < 0 || $request->quantity === "") {
             return [
                 "price" => $productItem["price"],
                 "qty" => $productItem["quantity"],
@@ -248,15 +262,15 @@ class CartsController extends Controller
             ];
         }
 
-        if($request->quantity <= $productItem["quantity"]
-            && $productItem["quantity"] > 0){
+        if ($request->quantity <= $productItem["quantity"]
+            && $productItem["quantity"] > 0) {
             return [
                 "price" => $productItem["price"],
                 "qty" => $productItem["quantity"],
                 "inputQty" => $request->quantity,
                 "msg" => ""
             ];
-        }else{
+        } else {
             return [
                 "price" => $productItem["price"],
                 "qty" => $productItem["quantity"],
@@ -324,6 +338,7 @@ class CartsController extends Controller
                 "customer_name" => $validation["name_customer"],
                 "customer_address" => $validation["customer_address"],
                 "customer_phone" => $validation["customer_phone"],
+                "payment_method" => $validation["payment_method"],
 
                 "quantity" => $item["quantity"],
                 "user_id" => $item["user_id"],
@@ -338,6 +353,7 @@ class CartsController extends Controller
                 "user_id" => $item["user_id"],
                 "order_details_id" => $orderDetailsItem->id,
                 "total_price" => $totalPrice,
+                "payment_method" => $validation["payment_method"],
                 "creator_id" => $orderDetailsItem->creator_id
             ]);
         }
@@ -355,6 +371,8 @@ class CartsController extends Controller
     function createCartItem($is_empty, $cart_items, $product_id)
     {
 
+        $msg = "";
+
         if (count($is_empty) > 0) {
 
             $cart_item = $cart_items->get()->toArray()[0];
@@ -364,8 +382,10 @@ class CartsController extends Controller
             if ($product_item["quantity"] >= $cart_item["quantity"] + 1) {
                 $cart_items->update(["quantity" =>
                     $cart_item["quantity"] + 1]);
+                $msg = "Product has already been in cart. Plus cart item successfully";
             } else if ($product_item["quantity"] < $cart_item["quantity"] + 1) {
                 $cart_items->update(["quantity" => 0]);
+                $msg = "Product has already been in cart. Plus cart item successfully";
             }
         } else {
             $productItems = Product::where("id", $product_id);
@@ -381,6 +401,9 @@ class CartsController extends Controller
                     $this->cart->creator_id = $product_item["creator_id"];
                     $this->cart->price = $product_item["price"];
                     $this->cart->save();
+
+                    $msg = "Add cart item successfully";
+
                 } else {
                     return redirect()->route("users.products.index");
                 }
@@ -393,8 +416,11 @@ class CartsController extends Controller
                 $this->cart->price = $product_item["price"];
                 $this->cart->save();
 
+                $msg = "Add cart item successfully.This Product is out of stock";
+
             }
         }
+        return $msg;
     }
 
     public function checkQuantity(Request $request)
@@ -421,5 +447,14 @@ class CartsController extends Controller
         }
 
         return $input;
+    }
+
+    public function delCartItem(Request $request)
+    {
+
+        $isSuccess = Cart::where("id", $request["id"])->delete();
+
+        return $isSuccess;
+
     }
 }

@@ -9,6 +9,10 @@
                 <h4>Date: {{date('d-m-Y', strtotime($dateOrderDetailsItems))}}</h4>
                 <h4>Time: {{date('H:m:s', strtotime($dateOrderDetailsItems))}}</h4>
                 <h4>By: {{$creator}}</h4>
+                <h4>Customer: {{$customerName}}</h4>
+                <h4>Address: {{$customerAddress}}</h4>
+                <h4>Phone: {{$customerPhone}}</h4>
+                <h4>Payment method: {{$paymentMethod}}</h4>
                 <table class="table">
                     <thead>
                     <tr>
@@ -16,6 +20,7 @@
                         <th scope="col">Product</th>
                         <th scope="col">Quantity</th>
                         <th scope="col">Price</th>
+                        <th scope="col">Action</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -37,7 +42,10 @@
                                      height="100"></td>
                             <td class="align-middle"><h5>{{$item["quantity"]}}</h5></td>
                             <td class="align-middle"><h5>${{$item["total_price"]}}</h5></td>
-
+                            <td class="align-middle"><a class="btn btn-warning"
+                                   href="{{route("users.order.details",$item["product_id"])}}">
+                                    More infor
+                                </a></td>
                         </tr>
                     @endforeach
 

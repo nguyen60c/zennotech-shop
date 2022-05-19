@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\user;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderDetails;
 use App\Models\Product;
@@ -16,10 +17,16 @@ use Illuminate\Support\Facades\Gate;
 class OrdersController extends Controller
 {
     private $array_temp = array();
+    private $cart;
 
     public function getUserId()
     {
         return auth()->user()->id;
+    }
+
+    public function __construct()
+    {
+        $this->cart = new Cart();
     }
 
 
@@ -41,6 +48,8 @@ class OrdersController extends Controller
             ->get()->toArray();
 
         $timeArray = array();
+
+        $cartItems = $this->cart->totalDistinctItems();
 
         /*Check order details items arrray is not empty*/
         if (count($orderDetailsItems) > 0) {
@@ -65,14 +74,13 @@ class OrdersController extends Controller
         }
 
         return view("orders.index")
+            ->with(compact("cartItems"))
             ->with(compact("orderItemArr"));
     }
 
     public function handleOrderDetailsItems($timeArray, $orderDetailsItems)
     {
 
-
-        $lengthOrderDetails = count($orderDetailsItems);
 
         $orderDetailsItemTemp = array();
 
@@ -92,6 +100,7 @@ class OrdersController extends Controller
                 $orderItemTemp["customer_name"] = $item["customer_name"];
                 $orderItemTemp["customer_address"] = $item["customer_address"];
                 $orderItemTemp["customer_phone"] = $item["customer_phone"];
+                $orderItemTemp["payment_method"] = $item["payment_method"];
 
                 /*To sum price has the same creator_id*/
                 $totalPrice += intval($item["item_price"]) * $item["quantity"];
@@ -161,6 +170,22 @@ class OrdersController extends Controller
         return ($orderDetailsArray);
     }
 
+    public function details($id)
+    {
+
+        $productItem = Product::where("id", $id)->get()->toArray()[0];
+        $creator = User::where("id", $productItem["creator_id"])->get("username")->toArray()[0]["username"];
+        $cartItems = Cart::all();
+
+        $previousUrl = url()->previous();
+
+        return view("orders.details")
+            ->with(compact("productItem"))
+            ->with(compact("cartItems"))
+            ->with(compact("previousUrl"))
+            ->with(compact("creator"));
+    }
+
     public function show($time)
     {
 
@@ -175,6 +200,13 @@ class OrdersController extends Controller
 
         $orderDetailsItemsArr = array();
 
+        $customerName = "";
+        $customerAddress = "";
+        $customerPhone = "";
+        $paymentMethod = "";
+
+        $cartItems = $this->cart->totalDistinctItems();
+
         $dateOrderDetailsItems = $orderItems[0]["created_at"];
 
         foreach ($orderItems as $key => $item) {
@@ -185,70 +217,80 @@ class OrdersController extends Controller
             $creator = User::where("id", $productItem["creator_id"])->get("username")->toArray()[0]["username"];
             $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
             $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
+            $orderDetailsItemsArr[$key]["product_id"] = $productItem["id"];
+            $customerName = $orderDetailsItems["customer_name"];
+            $paymentMethod = $orderDetailsItems["payment_method"];
+            $customerAddress = $orderDetailsItems["customer_address"];
+            $customerPhone = $orderDetailsItems["customer_phone"];
+            $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
+            $orderDetailsItemsArr[$key]["total_price"] = intval($orderDetailsItems["item_price"]);
+        }
+
+
+        return view("orders.show")
+            ->with(compact("orderDetailsItemsArr"))
+            ->with(compact("dateOrderDetailsItems"))
+            ->with(compact("customerName"))
+            ->with(compact("customerAddress"))
+            ->with(compact("customerPhone"))
+            ->with(compact("paymentMethod"))
+            ->with(compact("cartItems"))
+            ->with(compact("creator"));
+    }
+
+    public function printPdf($time)
+    {
+        abort_if(
+            Gate::denies('users.order.print'),
+            Response::HTTP_FORBIDDEN,
+            '403 Forbidden'
+        );
+
+        $time = str_replace("|", " ", $time);
+
+        $orderItems = Order::where("user_id", $this->getUserId())
+            ->where("created_at", $time)->get()->toArray();
+
+        $file = Carbon::now();
+
+        $totalPrice = 0;
+
+        $creator = "";
+
+        $orderDetailsItemsArr = array();
+
+        $customerName = "";
+        $customerAddress = "";
+        $customerPhone = "";
+        $paymentMethod = "";
+
+        $cartItems = $this->cart->totalDistinctItems();
+
+        $dateOrderDetailsItems = $orderItems[0]["created_at"];
+
+        foreach ($orderItems as $key => $item) {
+            $orderDetailsItems = OrderDetails::where("id", $item["order_details_id"])
+                ->get()->toArray()[0];
+            $productItem = Product::where("id", $orderDetailsItems["product_id"])
+                ->get()->toArray()[0];
+            $creator = User::where("id", $productItem["creator_id"])->get("username")->toArray()[0]["username"];
             $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
+            $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
+            $orderDetailsItemsArr[$key]["product_id"] = $productItem["id"];
+            $customerName = $orderDetailsItems["customer_name"];
+            $paymentMethod = $orderDetailsItems["payment_method"];
+            $customerAddress = $orderDetailsItems["customer_address"];
+            $customerPhone = $orderDetailsItems["customer_phone"];
             $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
             $orderDetailsItemsArr[$key]["total_price"] = intval($orderDetailsItems["item_price"]);
         }
 
 
 
-        return view("orders.show")
-            ->with(compact("orderDetailsItemsArr"))
-            ->with(compact("dateOrderDetailsItems"))
-            ->with(compact("creator"));
-    }
-
-    public function printPdf($id)
-    {
-        abort_if(
-            Gate::denies('users.orders.print'),
-            Response::HTTP_FORBIDDEN,
-            '403 Forbidden'
-        );
-
-        $order = Order::where('id', $id)->first();
-
-        $details_raw = OrderDetails::select(
-            "id",
-            "quantity",
-            "user_id",
-            "product_id",
-            DB::raw('DATE(created_at) as time'),
-            "created_at"
-        )
-            ->where("user_id", $id)
-            ->latest()
-            ->get()->toArray();
-
-        $data = $details_raw;
-
-        $arr_temp = [];
-
-        $arr_time = [];
-        foreach ($data as $item) {
-            array_push($arr_time, $item["time"]);
-        }
-
-        $unique_val_arr = array_values(array_unique($arr_time));
-
-        foreach ($data as $item) {
-            if (array_search($item["time"], $unique_val_arr) >= 0) {
-                $status = Order::where("order_details_id", $item["id"])->get()->toArray();
-                $product = Product::where("id", $item["product_id"])->get()->toArray();
-                $item["position"] = array_search($item["time"], $unique_val_arr);
-                $item["product_name"] = $product[0]["name"];
-                if (isset($status[0]["status"])) {
-                    $item["status"] = $status[0]["status"];
-                } else {
-                    $item["status"] = "bị lỗi";
-                }
-                $item["total"] = $item["quantity"] * $product[0]["price"];
-                array_push($arr_temp, $item);
-            }
-        }
-
         $dompdf = new Dompdf();
-        $dompdf->loadHtml(view('pdf.pdf', compact(["order", "arr_temp", "unique_val_arr"])));
+
+        $dompdf->loadHtml(view('orders.print', compact(["orderDetailsItemsArr", "dateOrderDetailsItems", "customerName", "customerAddress", "customerPhone", "paymentMethod", "cartItems", "creator"])));
+
 
         // (Optional) Setup the paper size and orientation
         $dompdf->setPaper('A4', 'landscape');
@@ -257,6 +299,6 @@ class OrdersController extends Controller
         $dompdf->render();
 
         // Output the generated PDF to Browser
-        $dompdf->stream('invoice.pdf');
+        $dompdf->stream($file . '.pdf');
     }
 }

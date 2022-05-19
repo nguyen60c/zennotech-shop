@@ -15,6 +15,7 @@
 
                     <div>
 
+                        @role("seller")
                         <input class="input_status border-0 transparent-input"
                                type="hidden" readonly
                                value="">
@@ -53,6 +54,34 @@
                             </option>
 
                         </select>
+                        @endrole
+
+                        @role("admin")
+                        <?php
+                        $color = "";
+                        switch ($orderDetailsItemsStatus) {
+                            case "Processing":
+                                $color = "bg-primary";
+                                break;
+                            case "Shipping":
+                                $color = "bg-warning";
+                                break;
+                            case "Cancel":
+                                $color = "bg-danger";
+                                break;
+                        }
+                        ?>
+                        <select name="status"
+                                class="form-control text-light select_status {{$color}}"
+                                style="font-weight: 700; width: 150px !important;">
+
+                            <option {{$orderDetailsItemsStatus}}
+                                    value="Processing" style="background: #a0aec0">
+                                Processing
+                            </option>
+
+                        </select>
+                        @endrole
 
                     </div>
                 </div>
@@ -70,6 +99,7 @@
                         <th scope="col">Price</th>
                         <th scope="col">Quantity</th>
                         <th scope="col">Total</th>
+                        <th scope="col">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -94,19 +124,20 @@
                             </td>
                             <td class="align-middle">{{$item["price"]}}</td>
                             <td class="align-middle">{{$item["quantity"]}}</td>
+                            <?php $total = 0;
+                            $total = $item["total_price"] ?>
                             <td class="align-middle">${{$item["total_price"]}}</td>
-
+                            <td class="align-middle">
+                                <a class="btn btn-warning"
+                                   href="{{route("users.products.details",$item["product_id"])}}">
+                                    More infor
+                                </a></td>
                         </tr>
                     @endforeach
 
                     </tbody>
+                    <strong>Totals Price: ${{$total}}</strong>
                 </table>
-                <?php
-
-                $time = date('Y-m-d|H:i:s', strtotime($orderDetailsItemsArr[0]["created_at"]));
-                $param = $time."|".$orderDetailsItemsArr[0]["user_id"];
-                ?>
-                <h4><a href="{{route("admin.orders.print",$param)}}">Print Order</a> </h4>
             </div>
             <form method="post" action="{{route("admin.orders.update")}}">
                 @csrf
@@ -116,87 +147,91 @@
                        value="{{$userId}}"/>
                 <input type="hidden" name="time" class="input_user_time"
                        value="{{$time}}"/>
+                @role("seller")
                 <button class="btn btn-primary" type="submit"><strong>Save</strong></button>
+                @endrole
                 <a href="{{ route('admin.orders.history') }}" class="btn btn-default">Back</a>
 
             </form>
+        </div>
+    </div>
 
-            @endsection
+@endsection
 
-            @section("script")
-                <script>
+@section("script")
+    <script>
 
-                    $(document).ready(function () {
+        $(document).ready(function () {
 
-                        let selected_status = $(".select_status");
-                        let input_status = $(".input_status");
-                        let input_user_id = $(".input_user_id");
-                        let input_order_details_id = $(".input_order_details_id");
-                        let save_button = $(".save-btn")
+            let selected_status = $(".select_status");
+            let input_status = $(".input_status");
+            let input_user_id = $(".input_user_id");
+            let input_order_details_id = $(".input_order_details_id");
+            let save_button = $(".save-btn")
 
-                        var url = window.location.href;
-                        var id = url.split("/");
-                        var user_id = id[4];
-                        var order_details_id = 0;
-                        var status_order_details = "";
-                        var order_detils_update_array = [];
+            var url = window.location.href;
+            var id = url.split("/");
+            var user_id = id[4];
+            var order_details_id = 0;
+            var status_order_details = "";
+            var order_detils_update_array = [];
 
-                        $(selected_status).each(function (index) {
-                            $(this).change(function () {
-                                var optionSelected = $(this).find("option:selected");
-                                var valueSelected = optionSelected.val();
-                                input_status.val(valueSelected)
+            $(selected_status).each(function (index) {
+                $(this).change(function () {
+                    var optionSelected = $(this).find("option:selected");
+                    var valueSelected = optionSelected.val();
+                    input_status.val(valueSelected)
 
-                                switch (valueSelected) {
-                                    case "Processing":
-                                        $(this).removeClass("bg-warning");
-                                        $(this).removeClass("bg-danger");
-                                        $(this).addClass("bg-primary");
-                                        break;
-                                    case "Shipping":
-                                        $(this).removeClass("bg-primary");
-                                        $(this).removeClass("bg-danger");
-                                        $(this).addClass("bg-warning");
-                                        break;
-                                    case "Cancel":
-                                        $(this).removeClass("bg-primary");
-                                        $(this).removeClass("bg-warning");
-                                        $(this).addClass("bg-danger");
-                                        break;
-                                }
-                            });
-                        });
+                    switch (valueSelected) {
+                        case "Processing":
+                            $(this).removeClass("bg-warning");
+                            $(this).removeClass("bg-danger");
+                            $(this).addClass("bg-primary");
+                            break;
+                        case "Shipping":
+                            $(this).removeClass("bg-primary");
+                            $(this).removeClass("bg-danger");
+                            $(this).addClass("bg-warning");
+                            break;
+                        case "Cancel":
+                            $(this).removeClass("bg-primary");
+                            $(this).removeClass("bg-warning");
+                            $(this).addClass("bg-danger");
+                            break;
+                    }
+                });
+            });
 
-                        $(save_button).click(function (e) {
-                            // if (confirm("are you sure to save it?")) {
-                            //     if (order_detils_update_array.length > 0) {
-                            $(".test_thu").val(order_detils_update_array);
-                            $.ajaxSetup({
-                                headers: {
-                                    'X-CSRF-TOKEN':
-                                        $('meta[name="csrf-token"]').attr('content')
-                                }
-                            });
-                            $.ajax({
-                                url: '{{url("orders/updateId")}}',
-                                dataType: "json",
-                                method: "POST",
-                                data: order_detils_update_array,
-                                success: function (response) { // What to do if we succeed
+            $(save_button).click(function (e) {
+                // if (confirm("are you sure to save it?")) {
+                //     if (order_detils_update_array.length > 0) {
+                $(".test_thu").val(order_detils_update_array);
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN':
+                            $('meta[name="csrf-token"]').attr('content')
+                    }
+                });
+                $.ajax({
+                    url: '{{url("orders/updateId")}}',
+                    dataType: "json",
+                    method: "POST",
+                    data: order_detils_update_array,
+                    success: function (response) { // What to do if we succeed
 
-                                    {{--window.location.href = "{{route("admin.orders.index", $userId)}}";--}}
-                                },
-                                error: function (response) {
-                                    alert("Updated Failed!");
-                                }
-                            })
-                        })
-                    })
+                        {{--window.location.href = "{{route("admin.orders.index", $userId)}}";--}}
+                    },
+                    error: function (response) {
+                        alert("Updated Failed!");
+                    }
+                })
+            })
+        })
 
 
-                    // });
+        // });
 
-                    // })
+        // })
 
-                </script>
+    </script>
 @endsection

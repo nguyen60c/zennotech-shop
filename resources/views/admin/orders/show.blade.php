@@ -16,6 +16,7 @@
 
                     <div>
 
+                        @role("seller")
                         <input class="input_status border-0 transparent-input"
                                type="hidden" readonly
                                value="">
@@ -54,6 +55,34 @@
                             </option>
 
                         </select>
+                        @endrole
+
+                        @role("admin")
+                        <?php
+                        $color = "";
+                        switch ($orderDetailsItemsStatus) {
+                            case "Processing":
+                                $color = "bg-primary";
+                                break;
+                            case "Shipping":
+                                $color = "bg-warning";
+                                break;
+                            case "Cancel":
+                                $color = "bg-danger";
+                                break;
+                        }
+                        ?>
+                        <select name="status"
+                                class="form-control text-light select_status {{$color}}"
+                                style="font-weight: 700; width: 150px !important;">
+
+                            <option {{$orderDetailsItemsStatus}}
+                                    value="Processing" style="background: #a0aec0">
+                                Processing
+                            </option>
+
+                        </select>
+                        @endrole
 
                     </div>
                 </div>
@@ -73,6 +102,7 @@
                         <th scope="col">Price</th>
                         <th scope="col">Quantity</th>
                         <th scope="col">Total</th>
+                        <th scope="col">Action</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -91,12 +121,21 @@
                             <td class="align-middle"><img src="{{ asset('images/products/' . $item['image']) }}" class="img-thumbnail" width="100" height="100"></td>
                             <td class="align-middle">{{$item["price"]}}</td>
                             <td class="align-middle">{{$item["quantity"]}}</td>
+                            
+                            <?php $total = 0;
+                            $total = $item["total_price"] ?>
+
                             <td class="align-middle">${{$item["total_price"]}}</td>
+                            <td class="align-middle">
+                                <a class="btn btn-warning" href="{{route("users.products.details",$item["product_id"])}}">
+                                    More infor
+                                </a></td>
 
                         </tr>
                     @endforeach
 
                     </tbody>
+                    <strong>Totals Price: ${{$total}}</strong>
                 </table>
             </div>
             <form method="post" action="{{route("admin.orders.update")}}">
@@ -107,7 +146,9 @@
                        value="{{$userId}}"/>
                 <input type="hidden" name="time" class="input_user_time"
                        value="{{$time}}"/>
+                @role("seller")
                 <button class="btn btn-primary" type="submit"><strong>Save</strong></button>
+                @endrole
                 <a href="{{ route('admin.orders.index',$userId) }}" class="btn btn-default">Back</a>
 
             </form>

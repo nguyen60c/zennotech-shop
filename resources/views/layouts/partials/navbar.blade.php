@@ -23,7 +23,8 @@
                 @endhasanyrole
             </ul>
 
-            <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" method="post" action="{{route("users.products.search")}}">
+            <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" method="post"
+                  action="{{route("users.products.search")}}">
                 <input type="hidden" name="_token" value="{{csrf_token()}}"/>
                 <input type="search" class="form-control form-control-dark"
                        placeholder="Search..." name="searching" aria-label="Search">
@@ -31,10 +32,15 @@
 
             @auth
                 <div class="text-end">
-                    <a href="{{route("cart.index")}}"
-                       class="me-2 text-light">
+
+                    <a href="{{route("cart.index")}}" type="button" class="btn bg-white position-relative">
                         <i class="fa-solid fa-cart-shopping"></i>
-                    </a>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger badge-cart_item">
+    {{count($cartItems) - 1}}
+  </span></a>
+                        </a>
+
+
                 </div>
 
                 {{auth()->user()->name}}&nbsp;

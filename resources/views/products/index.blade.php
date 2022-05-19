@@ -24,8 +24,8 @@
                     <div class="card mb-4" style="align-items: center;
                                     padding: 18px;border: none !important;">
                         <a
-                           href="{{route("users.products.details",$product->id)}}"
-                           style="font-weight: 700">
+                            href="{{route("users.products.details",$product->id)}}"
+                            style="font-weight: 700">
                             <img class="card-img-top" style="width: 150px; height: 150px"
                                  src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->image }}">
                         </a>
@@ -49,11 +49,11 @@
                                     @endauth
 
                                     @guest
-                                            <a class="btn btn-secondary btn-sm add-to-cart"
-                                               href="{{route("login.show")}}"
-                                                    class="tooltip-test" title="add to cart">
-                                                <i class="fa fa-shopping-cart"></i> add to cart
-                                            </a>
+                                        <a class="btn btn-secondary btn-sm add-to-cart"
+                                           href="{{route("login.show")}}"
+                                           class="tooltip-test" title="add to cart">
+                                            <i class="fa fa-shopping-cart"></i> add to cart
+                                        </a>
                                     @endguest
                                 </div>
 
@@ -107,7 +107,9 @@
                         },
                         success: function (res) {
                             console.log(res)
-                            if (res === 0) {
+                            if (res[0] === 0) {
+                                console.log(res)
+                                $(".badge-cart_item").text(res[1]);
                                 $(".text-annouce").text("Successful adding to cart")
                             }
                         }

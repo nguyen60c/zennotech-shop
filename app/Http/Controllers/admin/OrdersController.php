@@ -8,6 +8,7 @@ use App\Models\OrderDetails;
 use App\Models\Product;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade as PDF;
+use Dompdf\Dompdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -99,6 +100,7 @@ class OrdersController extends Controller
             $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
             $orderDetailsItemsArr[$key]["price"] = $productItem["price"];
             $orderDetailsItemsArr[$key]["id"] = $orderDetailsItems["id"];
+            $orderDetailsItemsArr[$key]["product_id"] = $productItem["id"];
             $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
             $totalPrice = intval($orderDetailsItems["item_price"]) * $orderDetailsItemsArr[$key]["quantity"];
             $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
@@ -149,21 +151,19 @@ class OrdersController extends Controller
             Response::HTTP_FORBIDDEN, '403 Forbidden');
 
 
-        $currentTime = Carbon::now()->toDateTimeString();
-        $currentTime = explode(" ", $currentTime);
-        $currentTime[0] = str_replace("-","", $currentTime[0]);
-        $currentTime[1] = str_replace(":","", $currentTime[1]);
-        $nameFile = $currentTime[0] . "-" . $currentTime[1];
-
         $param = explode("|", $param);
+
         $time = $param[0] . " " . $param[1];
+
         $userId = $param[2];
 
         $orderItems = Order::where("user_id", $userId)
             ->where("created_at", $time)->get()->toArray();
 
         $totalPrice = 0;
+
         $orderDetailsItemsArr = array();
+
         $orderDetailsItemsStatus = "";
 
         $customerName = "";
@@ -180,22 +180,33 @@ class OrdersController extends Controller
             $customerName = $orderDetailsItems["customer_name"];
             $customerAddress = $orderDetailsItems["customer_address"];
             $customerPhone = $orderDetailsItems["customer_phone"];
-
             $orderDetailsItemsArr[$key]["name"] = $productItem["name"];
             $orderDetailsItemsArr[$key]["image"] = $productItem["image"];
             $orderDetailsItemsArr[$key]["price"] = intval($orderDetailsItems["item_price"]);
             $orderDetailsItemsArr[$key]["id"] = $orderDetailsItems["id"];
+            $orderDetailsItemsArr[$key]["created_at"] = $orderDetailsItems["created_at"];
+            $orderDetailsItemsArr[$key]["user_id"] = $orderDetailsItems["user_id"];
             $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
+            $orderDetailsItemsArr[$key]["product_id"] = $productItem["id"];
             $totalPrice = $totalPrice + intval($orderDetailsItems["item_price"]);
             $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
             $orderDetailsItemsStatus = $orderItems[$key]["status"];
-        }
+            $file = Carbon::now();
 
-        $pdf = PDF::loadView('admin.orders.print',
-            compact(
-            ["orderDetailsItemsArr",
-            "dateOrderDetailsItems", "orderDetailsItemsStatus","customerName","customerAddress","customerPhone","userId","time"]));
-        return $pdf->download("$nameFile.pdf");
+            $dompdf = new Dompdf();
+
+            $dompdf->loadHtml(view('admin.orders.print', compact(["orderDetailsItemsArr", "dateOrderDetailsItems","orderDetailsItemsStatus", "customerName", "customerAddress", "customerPhone", "userId", "time"])));
+
+
+            // (Optional) Setup the paper size and orientation
+            $dompdf->setPaper('A4', 'landscape');
+
+            // Render the HTML as PDF
+            $dompdf->render();
+
+            // Output the generated PDF to Browser
+            $dompdf->stream($file . '.pdf');
+        }
     }
 
     public function ordersHistory()
@@ -210,7 +221,6 @@ class OrdersController extends Controller
                 ->get()->toArray();
         }
 
-
         $orderDetailsItemsArray = array();
 
         foreach ($orderItems as $key => $item) {
@@ -219,6 +229,7 @@ class OrdersController extends Controller
 //            ddd($orderDetailsItems);
             $orderDetailsItems[0]["status"] = $item["status"];
             $orderDetailsItems[0]["userId"] = $item["user_id"];
+            $orderDetailsItems[0]["payment_method"] = $item["payment_method"];
             if(isset($orderItems[$key + 1])){
                 if($orderItems[$key + 1]["created_at"] == $item["created_at"]){
                     continue;
@@ -249,7 +260,6 @@ class OrdersController extends Controller
 
         $orderDetailsItemsStatus = "";
 
-        $orderDetailsId = 0;
         $customerName = "";
         $customerAddress = "";
         $customerPhone = "";
@@ -271,6 +281,7 @@ class OrdersController extends Controller
             $orderDetailsItemsArr[$key]["created_at"] = $orderDetailsItems["created_at"];
             $orderDetailsItemsArr[$key]["user_id"] = $orderDetailsItems["user_id"];
             $orderDetailsItemsArr[$key]["quantity"] = $orderDetailsItems["quantity"];
+            $orderDetailsItemsArr[$key]["product_id"] = $productItem["id"];
             $totalPrice = $totalPrice + intval($orderDetailsItems["item_price"]);
             $orderDetailsItemsArr[$key]["total_price"] = $totalPrice;
             $orderDetailsItemsStatus = $orderItems[$key]["status"];
