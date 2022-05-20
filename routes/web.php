@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\opt\auth\RegisterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,8 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
         ->name("users.products.search");
     Route::get("/show-details/{product_id}","user\ProductsController@detailsProduct")
     ->name("users.products.details");
+
+    Route::get("otp/register", [RegisterController::class,"index"]);
 
     /**
      * Guest Routes
