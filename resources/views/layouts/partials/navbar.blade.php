@@ -36,7 +36,7 @@
                     <a href="{{route("cart.index")}}" type="button" class="btn bg-white position-relative">
                         <i class="fa-solid fa-cart-shopping"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger badge-cart_item">
-    {{count($cartItems) - 1}}
+    {{count($cartItems)}}
   </span></a>
                         </a>
 

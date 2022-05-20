@@ -121,7 +121,7 @@
                             <td class="align-middle"><img src="{{ asset('images/products/' . $item['image']) }}" class="img-thumbnail" width="100" height="100"></td>
                             <td class="align-middle">{{$item["price"]}}</td>
                             <td class="align-middle">{{$item["quantity"]}}</td>
-                            
+
                             <?php $total = 0;
                             $total = $item["total_price"] ?>
 

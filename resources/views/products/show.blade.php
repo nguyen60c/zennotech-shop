@@ -43,7 +43,7 @@
                                     </div>
 
                                     <div class="row" style="padding-top: 5px">
-                                        <a class="btn btn-warning btn-sm" href="#" style="font-weight: 700">
+                                        <a class="btn btn-warning btn-sm" href="{{route("users.products.details",$product->id)}}" style="font-weight: 700">
                                             More infor
                                         </a>
                                     </div>
