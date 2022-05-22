@@ -6,7 +6,9 @@
     @auth
         <div class="body flex-grow-1" style="padding-right: 5rem;padding-top: 10px">
             <h1>Checkout</h1>
-            <h3>Date: {{date('d/m/y',strtotime($time_created))}}</h3>
+            <?php $param = $param[0] ?>
+            <?php $cartItems = $param['cartItems'] ?>
+            <h3>Date: {{date('d/m/y',strtotime($param['timeCreated']))}}</h3>
             <div class="row" style="margin-top: 30px">
                 <div class="container bg-secondary bg-opacity-10 p-4 col" style="border-radius: 10px; margin-right: 10px">
 
@@ -67,10 +69,9 @@
                         </thead>
                         <tbody>
 
-{{--                        {{ddd($data)}}--}}
                         <?php $cartIdString = ""; ?>
 
-                        @foreach($data as $order)
+                        @foreach($param['prdItemsArr'] as $order)
 
                             <?php
                                 $cartIdString .= "|" . $order["cart_id"];
@@ -83,7 +84,7 @@
                                          width="50"
                                          height="50"></td>
                                 <td class="align-middle">{{$order["name"]}}</td>
-                                <td class="align-middle text-center" >{{$order["quantity_temp"]}}</td>
+                                <td class="align-middle text-center" >{{$order["cart_qty"]}}</td>
                                 <td class="align-middle text-center">${{ number_format($order["price"]) }}</td>
                             </tr>
                         @endforeach
@@ -93,7 +94,7 @@
                             <th style="border: none"></th>
                             <th style="border: none"></th>
                             <th style="border: none"></th>
-                            <th style="border: none" class="text-center">${{number_format($total)}}</th>
+                            <th style="border: none" class="text-center">${{number_format($param['totalPrice'])}}</th>
                         </tr>
 
 
