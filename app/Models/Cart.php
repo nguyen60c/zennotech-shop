@@ -11,10 +11,7 @@ class Cart extends Model
 
     protected $table = "carts";
 
-    protected $fillable = [
-        "quantity",
-        "price"
-    ];
+    protected $guarded = [];
 
     public function user()
     {

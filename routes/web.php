@@ -61,9 +61,11 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
             Route::post("/add-to-order-details",
                 "user\CartsController@addCartItemsToOrderDetails")->name("cart.ordersDetails.add");
             Route::post("/check-quantity","user\CartsController@checkQuantity");
-            Route::get("/checkout", "user\CartsController@displayCheckoutPage")->name("cart.checkout.index");
+            Route::get("/checkout", "user\CartsController@ChekoutPage")->name("cart.checkout.index");
             Route::post("/checkout", "user\CartsController@createOrderDetailsItem")->name("cart.checkout.store");
             Route::get("/checkQuantityCartItem", "user\CartsController@checkQuantityCartItem")->name("cart.checkQuantityCartItem");
+            Route::delete("/selected-delete", "user\CartsController@selectedDel")->name("cart.ajax.selectedDel");
+            Route::delete("/clear", "user\CartsController@clear")->name("cart.ajax.clear");
             Route::post("/updateQty","user\CartsController@updateQty")->name("cart.ajax.updateQty");
             Route::post("/delete-cartItem","user\CartsController@delCartItem")->name("cart.ajax.delCartItem");
         });

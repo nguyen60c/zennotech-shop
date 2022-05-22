@@ -212,14 +212,10 @@
 
 
 
-                        <hr>
                     @endforeach
                     @if (count($listCartItems) > 0)
-                        <form action="{{ route('cart.clear') }}" method="POST">
-                            <input type="hidden" name="_method" value="delete"/>
-                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                            <button class="btn btn-secondary btn-md">Clear Cart</button>
-                        </form>
+                        <input type="hidden" id="user_id" value="{{$userId}}">
+                        <button class="btn btn-secondary btn-md" onclick="selectedDel()">Delete</button>
                     @endif
                 </div>
                 @if (count($listCartItems) > 0)
@@ -240,7 +236,6 @@
                     </div>
                 @endif
             </div>
-            <br><br>
         </div>
 
     </div>
@@ -254,6 +249,7 @@
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
+
 
         /*Prevent key tab on keyboard*/
         $(document).ready(function () {
@@ -277,7 +273,7 @@
                     "                                            Out of stock\n" +
                     "                                        </a>")
             }
-        })
+        });
 
         function delCartItem(id) {
 
@@ -333,6 +329,54 @@
                 success: function (res) {
                 }
             })
+        }
+
+        let userId = $("#user_id").val();
+        let cartIdArray = [];
+        function selectedDel() {
+            if ($('[name="all_cart_items"]').is(":checked")) {
+
+                emptyCrdItems();
+
+                $.ajax({
+                    url: "{{route("cart.ajax.clear")}}",
+                    method: "DELETE",
+                    data: {
+                        id : userId
+                    },
+                    success: function (res) {
+                        console.log(res)
+                    }
+                })
+            } else {
+                if($(".cart_item:checked").length > 0){
+                    $(".cart_item:checked").each(function(index){
+                        let cartId = $(this).attr("class").split("-")[1];
+                        cartIdArray.push(cartId);
+                    })
+                }
+                totalPriceItems = 0
+                $(".cart-total").text("$0");
+                $(".selected-items").text("$0")
+                $(".total_qty_items").text(parseInt($(".total_qty_items").text()) - cartIdArray.length);
+
+                console.log(cartIdArray)
+
+                $.each(cartIdArray,function(key,val){
+                    $(".cart_item-" + val).remove();
+                })
+
+                $.ajax({
+                    url: "{{route("cart.ajax.selectedDel")}}",
+                    method: "DELETE",
+                    data: {
+                        array : cartIdArray
+                    },
+                    success: function (res) {
+                        console.log(res)
+                    }
+                })
+            }
         }
 
 
@@ -627,6 +671,12 @@
                 window.location.href = "{{route("users.products.index")}}";
             }
         })
+
+        function emptyCrdItems(){
+            $(".container-wrapper")
+                .html("<h4>No Product(s) In Your Cart</h4><br>\n" +
+                    "                    <a href=\"/\" class=\"btn btn-dark\">Continue Shopping</a>");
+        }
 
 
     </script>
