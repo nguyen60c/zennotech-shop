@@ -42,8 +42,8 @@
                 <div class="col-lg-7">
                     <h4 class="text-danger announce_quantity_result"></h4>
                     <br>
-                    @if (count($listCartItems) > 0)
-                        <h4><span class="total_qty_items">{{ count($listCartItems) }}</span> Product(s) In Your Cart
+                    @if (count($cartItems) > 0)
+                        <h4><span class="total_qty_items">{{ count($cartItems) }}</span> Product(s) In Your Cart
                         </h4><br>
                         <h4 class="text-annouce text-danger"></h4>
                         <input type="checkbox" name="all_cart_items">
@@ -55,170 +55,348 @@
                         <a href="/" class="btn btn-dark">Continue Shopping</a>
                     @endif
 
+                    @if (count($cartItems) > 0)
+                        <?php $prevCreatorId = $cartItems[0]['creator_id'] ?>
+                        <?php $flat = 0 ?>
+                        @foreach ($cartItems as $key => $item)
 
-                    @foreach ($listCartItems as $item)
+                            @if($prevCreatorId === $item['creator_id'])
 
-                        @if($item["quantity_item"] > 0)
-                            <div class="cart_item-{{$item["cart_id"]}}">
-                                <input type="checkbox"
-                                       data-name="{{ $item['name'] }}" data-productId="{{ $item['id'] }}"
-                                       data-creatorId="{{ $item['creator_id'] }}" data-cartId="{{ $item['cart_id'] }}"
-                                       data-quantityCartItem="{{ $item['quantity_item'] }}"
-                                       onchange="selectedCrd({{$item["cart_id"]}})"
-                                       onkeyup="selectedCrd({{$item["cart_id"]}})"
-                                       class="cart_item cart_item_checkbox-{{$item["cart_id"]}}">
+                                @if($flat === 0)
+                                    <span>{{$item['seller']}}</span>
+                                    <?php $flat = 1; ?>
+                                @endif
 
-                                <div class="row">
-                                    <div class="col-lg-3">
-                                        <img src="{{ asset('images/products/' . $item['image']) }}"
-                                             class="img-thumbnail"
-                                             width="200"
-                                             height="200">
-                                    </div>
-                                    <div class="col-lg-5">
-                                        <p>
-                                            <b>
-                                                <span class="product-name">{{ $item['name'] }}</span>
-                                            </b>
-                                            <br>
-                                            <b>Price: $</b>
-                                            <span class="cart-item-price">{{ $item['price'] }}</span>
-                                            <br>
-                                            <b>Quantity: </b>
-                                            <input type="hidden"
-                                                   value="{{$item['quantity_item'] === 0 ? 0 : $item['quantity_item']}}"
-                                                   class="qty qty-{{$item["cart_id"]}}">
-                                            <input type="hidden" value="{{$item['price']}}"
-                                                   class="price price-{{$item["cart_id"]}}">
+                                @if($item["quantity_item"] > 0)
+                                    <div class="cart_item-{{$item["cart_id"]}}">
+                                        <input type="checkbox"
+                                               data-name="{{ $item['name'] }}" data-productId="{{ $item['id'] }}"
+                                               data-creatorId="{{ $item['creator_id'] }}"
+                                               data-cartId="{{ $item['cart_id'] }}"
+                                               data-quantityCartItem="{{ $item['quantity_item'] }}"
+                                               onchange="selectedCrd({{$item["cart_id"]}})"
+                                               onkeyup="selectedCrd({{$item["cart_id"]}})"
+                                               class="cart_item cart_item_checkbox-{{$item["cart_id"]}}">
 
-                                            <span class="product-quantity">
+                                        <div class="row">
+                                            <div class="col-lg-3">
+                                                <img src="{{ asset('images/products/' . $item['image']) }}"
+                                                     class="img-thumbnail"
+                                                     width="200"
+                                                     height="200">
+                                            </div>
+                                            <div class="col-lg-5">
+                                                <p>
+                                                    <b>
+                                                        <span class="product-name">{{ $item['name'] }}</span>
+                                                    </b>
+                                                    <br>
+                                                    <b>Price: $</b>
+                                                    <span class="cart-item-price">{{ $item['price'] }}</span>
+                                                    <br>
+                                                    <b>Quantity: </b>
+                                                    <input type="hidden"
+                                                           value="{{$item['quantity_item'] === 0 ? 0 : $item['quantity_item']}}"
+                                                           class="qty qty-{{$item["cart_id"]}}">
+                                                    <input type="hidden" value="{{$item['price']}}"
+                                                           class="price price-{{$item["cart_id"]}}">
+
+                                                    <span class="product-quantity">
                                 {{ $item['quantity']}}
                                 </span>
-                                            <br>
-                                            <b>Total: </b>
-                                            <span
-                                                class="total-price-{{$item["cart_id"]}}">${{$item["price"] * $item["quantity_item"]}}</span>
-                                            <br>
-                                            <a class="btn btn-warning"
-                                               href="{{route("users.products.details",$item["id"])}}"
-                                               style="font-weight: 700">
-                                                More infor
-                                            </a>
-                                            <br>
-                                            <span class="stock">
+                                                    <br>
+                                                    <b>Total: </b>
+                                                    <span
+                                                        class="total-price-{{$item["cart_id"]}}">${{$item["price"] * $item["quantity_item"]}}</span>
+                                                    <br>
+                                                    <a class="btn btn-warning"
+                                                       href="{{route("users.products.details",$item["id"])}}"
+                                                       style="font-weight: 700">
+                                                        More infor
+                                                    </a>
+                                                    <br>
+                                                    <span class="stock">
 
                                         </span>
-                                        </p>
-                                        <div class="row" style="margin-left: 15px">
-                                            <div class="form-group row">
-                                                <span class="text-danger"></span>
-                                                <form id="frm-{{$item["cart_id"]}}">
+                                                </p>
+                                                <div class="row" style="margin-left: 15px">
+                                                    <div class="form-group row">
+                                                        <span class="text-danger"></span>
+                                                        <form id="frm-{{$item["cart_id"]}}">
 
-                                                    <input type="hidden" name="cart_id" value="{{$item["cart_id"]}}">
-                                                    <input type="hidden" class="creator-{{$item["cart_id"]}}"
-                                                           name="creator_id"
-                                                           value="{{$item["creator_id"]}}">
-                                                    <input type="hidden" class="product-{{$item["cart_id"]}}"
-                                                           name="product_id"
-                                                           value="{{$item["id"]}}">
-                                                    <input type="number"
-                                                           class="form-control form-control-sm user_input_qty user_input_qty-{{$item["cart_id"]}}"
-                                                           value="{{ $item['quantity_item'] }}" min="1" id="quantity"
-                                                           name="quantity" style="width: 70px; margin-right: 10px;"
-                                                           data-id="{{$item["cart_id"]}}"
-                                                           onchange="updateQty({{$item["cart_id"]}})"
-                                                           onkeyup="updateQty({{$item["cart_id"]}})"/>
-                                                </form>
-                                            </div>
+                                                            <input type="hidden" name="cart_id"
+                                                                   value="{{$item["cart_id"]}}">
+                                                            <input type="hidden" class="creator-{{$item["cart_id"]}}"
+                                                                   name="creator_id"
+                                                                   value="{{$item["creator_id"]}}">
+                                                            <input type="hidden" class="product-{{$item["cart_id"]}}"
+                                                                   name="product_id"
+                                                                   value="{{$item["id"]}}">
+                                                            <input type="number"
+                                                                   class="form-control form-control-sm user_input_qty user_input_qty-{{$item["cart_id"]}}"
+                                                                   value="{{ $item['quantity_item'] }}" min="1"
+                                                                   id="quantity"
+                                                                   name="quantity"
+                                                                   style="width: 70px; margin-right: 10px;"
+                                                                   data-id="{{$item["cart_id"]}}"
+                                                                   onchange="updateQty({{$item["cart_id"]}})"
+                                                                   onkeyup="updateQty({{$item["cart_id"]}})"/>
+                                                        </form>
+                                                    </div>
 
-                                            <div>
-                                                <button class="btn btn-dark btn-sm btn-delete-{{$item["cart_id"]}}"
-                                                        type="submit" style="margin-right: 10px;"
-                                                        onclick="delCartItem({{$item["cart_id"]}})">
-                                                    <i
-                                                        class="fa fa-trash"></i></button>
-                                                <input type="hidden" name="_method" value="delete"/>
-                                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                                    <div>
+                                                        <button
+                                                            class="btn btn-dark btn-sm btn-delete-{{$item["cart_id"]}}"
+                                                            type="submit" style="margin-right: 10px;"
+                                                            onclick="delCartItem({{$item["cart_id"]}})">
+                                                            <i
+                                                                class="fa fa-trash"></i></button>
+                                                        <input type="hidden" name="_method" value="delete"/>
+                                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                                    </div>
+                                                </div>
+                                                <p class="text-danger quantity-annouce-{{$item["cart_id"]}}"
+                                                   style="width: 260px"></p>
                                             </div>
                                         </div>
-                                        <p class="text-danger quantity-annouce-{{$item["cart_id"]}}"
-                                           style="width: 260px"></p>
                                     </div>
-                                </div>
-                            </div>
-                        @else
-                            <div class="cart_item-{{$item["cart_id"]}}">
-                                <input type="text"
-                                       value="Out of stock"
-                                       readonly>
+                                @else
+                                    <div class="cart_item-{{$item["cart_id"]}}">
+                                        <input type="text"
+                                               value="Out of stock"
+                                               readonly>
 
-                                <div class="row">
-                                    <div class="col-lg-3">
-                                        <img src="{{ asset('images/products/' . $item['image']) }}"
-                                             class="img-thumbnail"
-                                             width="200"
-                                             height="200">
-                                    </div>
-                                    <div class="col-lg-5">
-                                        <p>
-                                            <b>
-                                                <span>{{ $item['name'] }}</span>
-                                            </b>
-                                            <br>
-                                            <b>Price: $</b>
-                                            <span>{{ $item['price'] }}</span>
-                                            <br>
-                                            <b>Quantity: </b>
+                                        <div class="row">
+                                            <div class="col-lg-3">
+                                                <img src="{{ asset('images/products/' . $item['image']) }}"
+                                                     class="img-thumbnail"
+                                                     width="200"
+                                                     height="200">
+                                            </div>
+                                            <div class="col-lg-5">
+                                                <p>
+                                                    <b>
+                                                        <span>{{ $item['name'] }}</span>
+                                                    </b>
+                                                    <br>
+                                                    <b>Price: $</b>
+                                                    <span>{{ $item['price'] }}</span>
+                                                    <br>
+                                                    <b>Quantity: </b>
 
-                                            <span class="product-quantity">
+                                                    <span class="product-quantity">
                                 {{ $item['quantity']}}
                                 </span>
-                                            <br>
-                                            <b>Total: </b>
-                                            <span>${{$item["price"] * $item["quantity_item"]}}</span>
-                                            <br>
-                                            <a class="btn btn-warning"
-                                               href="{{route("users.products.details",$item["id"])}}"
-                                               style="font-weight: 700">
-                                                More infor
-                                            </a>
-                                            <br>
-                                            <span class="stock">
+                                                    <br>
+                                                    <b>Total: </b>
+                                                    <span>${{$item["price"] * $item["quantity_item"]}}</span>
+                                                    <br>
+                                                    <a class="btn btn-warning"
+                                                       href="{{route("users.products.details",$item["id"])}}"
+                                                       style="font-weight: 700">
+                                                        More infor
+                                                    </a>
+                                                    <br>
+                                                    <span class="stock">
 
                                         </span>
-                                        </p>
-                                        <div class="row" style="margin-left: 15px">
-                                            <div class="form-group row">
-                                                <span class="text-danger"></span>
+                                                </p>
+                                                <div class="row" style="margin-left: 15px">
+                                                    <div class="form-group row">
+                                                        <span class="text-danger"></span>
 
-                                            </div>
+                                                    </div>
 
-                                            <div>
-                                                <button class="btn btn-dark btn-sm btn-delete-{{$item["cart_id"]}}"
-                                                        type="submit" style="margin-right: 10px;"
-                                                        onclick="delCartItem({{$item["cart_id"]}})">
-                                                    <i
-                                                        class="fa fa-trash"></i></button>
-                                                <input type="hidden" name="_method" value="delete"/>
-                                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                                    <div>
+                                                        <button
+                                                            class="btn btn-dark btn-sm btn-delete-{{$item["cart_id"]}}"
+                                                            type="submit" style="margin-right: 10px;"
+                                                            onclick="delCartItem({{$item["cart_id"]}})">
+                                                            <i
+                                                                class="fa fa-trash"></i></button>
+                                                        <input type="hidden" name="_method" value="delete"/>
+                                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                                    </div>
+                                                </div>
+                                                <p class="text-danger quantity-annouce-{{$item["cart_id"]}}"
+                                                   style="width: 260px"></p>
                                             </div>
                                         </div>
-                                        <p class="text-danger quantity-annouce-{{$item["cart_id"]}}"
-                                           style="width: 260px"></p>
                                     </div>
-                                </div>
-                            </div>
+                                @endif
+                            @else
+                                <span>{{$item['seller']}}</span>
+                                <?php
+                                $prevCreatorId = $item['creator_id'] ?>
+                                @if($item["quantity_item"] > 0)
+                                    <div class="cart_item-{{$item["cart_id"]}}">
+                                        <input type="checkbox"
+                                               data-name="{{ $item['name'] }}" data-productId="{{ $item['id'] }}"
+                                               data-creatorId="{{ $item['creator_id'] }}"
+                                               data-cartId="{{ $item['cart_id'] }}"
+                                               data-quantityCartItem="{{ $item['quantity_item'] }}"
+                                               onchange="selectedCrd({{$item["cart_id"]}})"
+                                               onkeyup="selectedCrd({{$item["cart_id"]}})"
+                                               class="cart_item cart_item_checkbox-{{$item["cart_id"]}}">
+
+                                        <div class="row">
+                                            <div class="col-lg-3">
+                                                <img src="{{ asset('images/products/' . $item['image']) }}"
+                                                     class="img-thumbnail"
+                                                     width="200"
+                                                     height="200">
+                                            </div>
+                                            <div class="col-lg-5">
+                                                <p>
+                                                    <b>
+                                                        <span class="product-name">{{ $item['name'] }}</span>
+                                                    </b>
+                                                    <br>
+                                                    <b>Price: $</b>
+                                                    <span class="cart-item-price">{{ $item['price'] }}</span>
+                                                    <br>
+                                                    <b>Quantity: </b>
+                                                    <input type="hidden"
+                                                           value="{{$item['quantity_item'] === 0 ? 0 : $item['quantity_item']}}"
+                                                           class="qty qty-{{$item["cart_id"]}}">
+                                                    <input type="hidden" value="{{$item['price']}}"
+                                                           class="price price-{{$item["cart_id"]}}">
+
+                                                    <span class="product-quantity">
+                                {{ $item['quantity']}}
+                                </span>
+                                                    <br>
+                                                    <b>Total: </b>
+                                                    <span
+                                                        class="total-price-{{$item["cart_id"]}}">${{$item["price"] * $item["quantity_item"]}}</span>
+                                                    <br>
+                                                    <a class="btn btn-warning"
+                                                       href="{{route("users.products.details",$item["id"])}}"
+                                                       style="font-weight: 700">
+                                                        More infor
+                                                    </a>
+                                                    <br>
+                                                    <span class="stock">
+
+                                        </span>
+                                                </p>
+                                                <div class="row" style="margin-left: 15px">
+                                                    <div class="form-group row">
+                                                        <span class="text-danger"></span>
+                                                        <form id="frm-{{$item["cart_id"]}}">
+
+                                                            <input type="hidden" name="cart_id"
+                                                                   value="{{$item["cart_id"]}}">
+                                                            <input type="hidden" class="creator-{{$item["cart_id"]}}"
+                                                                   name="creator_id"
+                                                                   value="{{$item["creator_id"]}}">
+                                                            <input type="hidden" class="product-{{$item["cart_id"]}}"
+                                                                   name="product_id"
+                                                                   value="{{$item["id"]}}">
+                                                            <input type="number"
+                                                                   class="form-control form-control-sm user_input_qty user_input_qty-{{$item["cart_id"]}}"
+                                                                   value="{{ $item['quantity_item'] }}" min="1"
+                                                                   id="quantity"
+                                                                   name="quantity"
+                                                                   style="width: 70px; margin-right: 10px;"
+                                                                   data-id="{{$item["cart_id"]}}"
+                                                                   onchange="updateQty({{$item["cart_id"]}})"
+                                                                   onkeyup="updateQty({{$item["cart_id"]}})"/>
+                                                        </form>
+                                                    </div>
+
+                                                    <div>
+                                                        <button
+                                                            class="btn btn-dark btn-sm btn-delete-{{$item["cart_id"]}}"
+                                                            type="submit" style="margin-right: 10px;"
+                                                            onclick="delCartItem({{$item["cart_id"]}})">
+                                                            <i
+                                                                class="fa fa-trash"></i></button>
+                                                        <input type="hidden" name="_method" value="delete"/>
+                                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                                    </div>
+                                                </div>
+                                                <p class="text-danger quantity-annouce-{{$item["cart_id"]}}"
+                                                   style="width: 260px"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="cart_item-{{$item["cart_id"]}}">
+                                        <input type="text"
+                                               value="Out of stock"
+                                               readonly>
+
+                                        <div class="row">
+                                            <div class="col-lg-3">
+                                                <img src="{{ asset('images/products/' . $item['image']) }}"
+                                                     class="img-thumbnail"
+                                                     width="200"
+                                                     height="200">
+                                            </div>
+                                            <div class="col-lg-5">
+                                                <p>
+                                                    <b>
+                                                        <span>{{ $item['name'] }}</span>
+                                                    </b>
+                                                    <br>
+                                                    <b>Price: $</b>
+                                                    <span>{{ $item['price'] }}</span>
+                                                    <br>
+                                                    <b>Quantity: </b>
+
+                                                    <span class="product-quantity">
+                                {{ $item['quantity']}}
+                                </span>
+                                                    <br>
+                                                    <b>Total: </b>
+                                                    <span>${{$item["price"] * $item["quantity_item"]}}</span>
+                                                    <br>
+                                                    <a class="btn btn-warning"
+                                                       href="{{route("users.products.details",$item["id"])}}"
+                                                       style="font-weight: 700">
+                                                        More infor
+                                                    </a>
+                                                    <br>
+                                                    <span class="stock">
+
+                                        </span>
+                                                </p>
+                                                <div class="row" style="margin-left: 15px">
+                                                    <div class="form-group row">
+                                                        <span class="text-danger"></span>
+
+                                                    </div>
+
+                                                    <div>
+                                                        <button
+                                                            class="btn btn-dark btn-sm btn-delete-{{$item["cart_id"]}}"
+                                                            type="submit" style="margin-right: 10px;"
+                                                            onclick="delCartItem({{$item["cart_id"]}})">
+                                                            <i
+                                                                class="fa fa-trash"></i></button>
+                                                        <input type="hidden" name="_method" value="delete"/>
+                                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                                    </div>
+                                                </div>
+                                                <p class="text-danger quantity-annouce-{{$item["cart_id"]}}"
+                                                   style="width: 260px"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endif
+
+
+
+                        @endforeach
+                        @if (count($cartItems) > 0)
+                            <input type="hidden" id="user_id" value="{{$userId}}">
+                            <button class="btn btn-secondary btn-md" onclick="selectedDel()">Delete</button>
                         @endif
-
-
-
-                    @endforeach
-                    @if (count($listCartItems) > 0)
-                        <input type="hidden" id="user_id" value="{{$userId}}">
-                        <button class="btn btn-secondary btn-md" onclick="selectedDel()">Delete</button>
                     @endif
                 </div>
-                @if (count($listCartItems) > 0)
+                @if (count($cartItems) > 0)
                     <div class="col-lg-5">
                         <div class="card">
                             <ul class="list-group list-group-flush">
@@ -333,6 +511,7 @@
 
         let userId = $("#user_id").val();
         let cartIdArray = [];
+
         function selectedDel() {
             if ($('[name="all_cart_items"]').is(":checked")) {
 
@@ -342,15 +521,15 @@
                     url: "{{route("cart.ajax.clear")}}",
                     method: "DELETE",
                     data: {
-                        id : userId
+                        id: userId
                     },
                     success: function (res) {
                         console.log(res)
                     }
                 })
             } else {
-                if($(".cart_item:checked").length > 0){
-                    $(".cart_item:checked").each(function(index){
+                if ($(".cart_item:checked").length > 0) {
+                    $(".cart_item:checked").each(function (index) {
                         let cartId = $(this).attr("class").split("-")[1];
                         cartIdArray.push(cartId);
                     })
@@ -362,7 +541,7 @@
 
                 console.log(cartIdArray)
 
-                $.each(cartIdArray,function(key,val){
+                $.each(cartIdArray, function (key, val) {
                     $(".cart_item-" + val).remove();
                 })
 
@@ -370,7 +549,7 @@
                     url: "{{route("cart.ajax.selectedDel")}}",
                     method: "DELETE",
                     data: {
-                        array : cartIdArray
+                        array: cartIdArray
                     },
                     success: function (res) {
                         console.log(res)
@@ -445,7 +624,7 @@
 
                             $(".quantity-annouce-" + id).text("There are only " + res["qty"] + " in store");
 
-                            $(".total-price-"+id).text("$" + (number*res["price"]));
+                            $(".total-price-" + id).text("$" + (number * res["price"]));
                             $(".user_input_qty-" + id).val(number);
 
                             $(".qty-" + id).val(number)
@@ -553,7 +732,6 @@
                 let cartId = clSelectedCartItem.split("-")[1];
                 let productId = $(".product-" + cartId).val();
                 let qtyItem = $(".user_input_qty-" + cartId).val();
-                console.log(qtyItem)
                 let creatorId = $(".creator-" + cartId).val();
 
                 if (qtyItem > 0) {
@@ -570,9 +748,10 @@
             })
 
             if (request.length > 0) {
+                window.location.href = "{{route("cart.checkout.index")}}";
                 $(".announce_quantity_result").text("");
                 $.ajax({
-                    url: "{{route("cart.ordersDetails.add")}}",
+                    url: "{{route("cart.ordersDetails.ajax.add")}}",
                     method: "POST",
                     dataType: "json",
                     data: {
@@ -580,14 +759,10 @@
                     },
                     success: function (res) {
                         console.log(res)
-                        if (res[0]) {
-                            window.location.href = "{{route("cart.checkout.index")}}";
-                        } else if (res[0] === false) {
-                            $(".announce_quantity_result").text("You must choose product have the same seller !!");
-                        }
+
                     }
                 })
-            } else if (request.length === 0) {
+            } else if (request.length >= 0) {
                 $(".announce_quantity_result").text("You have not chosen any products to order yet !!");
             }
         })
@@ -616,19 +791,18 @@
 
             })
 
-            if (request.length > 0) {
-                $.ajax({
-                    url: "{{route("cart.ordersDetails.add")}}",
-                    method: "POST",
-                    dataType: "json",
-                    data: {
-                        request
-                    },
-                    success: function (res) {
-                        window.location.href = "{{route("users.products.index")}}";
-                    }
-                })
-            }
+            window.location.href = "{{route("users.products.index")}}";
+            $.ajax({
+                url: "{{route("cart.ordersDetails.ajax.add")}}",
+                method: "POST",
+                dataType: "json",
+                data: {
+                    request
+                },
+                success: function (res) {
+
+                }
+            })
         })
 
         $(".nav-home").click(function () {
@@ -655,24 +829,21 @@
 
             })
 
-            if (request.length > 0) {
-                $.ajax({
-                    url: "{{route("cart.ordersDetails.add")}}",
-                    method: "POST",
-                    dataType: "json",
-                    data: {
-                        request
-                    },
-                    success: function (res) {
-                        window.location.href = "{{route("users.products.index")}}";
-                    }
-                })
-            } else {
-                window.location.href = "{{route("users.products.index")}}";
-            }
+            window.location.href = "{{route("users.products.index")}}";
+            $.ajax({
+                url: "{{route("cart.ordersDetails.ajax.add")}}",
+                method: "POST",
+                dataType: "json",
+                data: {
+                    request
+                },
+                success: function (res) {
+
+                }
+            })
         })
 
-        function emptyCrdItems(){
+        function emptyCrdItems() {
             $(".container-wrapper")
                 .html("<h4>No Product(s) In Your Cart</h4><br>\n" +
                     "                    <a href=\"/\" class=\"btn btn-dark\">Continue Shopping</a>");

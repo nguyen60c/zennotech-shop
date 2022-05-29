@@ -49,6 +49,9 @@
                                     <button class="btn btn-primary text-center mt-2" type="submit">
                                         Login
                                     </button>
+                                    <p class="text-center" style="margin-top: 3px;margin-bottom: 1px">
+                                        <a href="{{ route('login.opt.show') }}" class="text-center text-primary">Login by phoneNumber</a>
+                                    </p>
                                     <p class="text-center mt-5" style="margin-bottom: 5px">Don't have an account?
                                         <a href="{{ route('register.show') }}" class="text-center text-primary">Sign
                                             Up</a>

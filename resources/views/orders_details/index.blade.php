@@ -10,10 +10,12 @@
             <?php $cartItems = $param['cartItems'] ?>
             <h3>Date: {{date('d/m/y',strtotime($param['timeCreated']))}}</h3>
             <div class="row" style="margin-top: 30px">
-                <div class="container bg-secondary bg-opacity-10 p-4 col" style="border-radius: 10px; margin-right: 10px">
+                <div class="container bg-secondary bg-opacity-10 p-4 col"
+                     style="border-radius: 10px; margin-right: 10px">
 
                     <label for="title" class="form-label" style="margin-top: 5px">Name</label>
                     <input type="text"
+                           value="{{old('customer_name')}}"
                            class="form-control input_name"
                            name="customer_name"
                            placeholder="name" required>
@@ -26,6 +28,7 @@
                     <input type="text"
                            class="form-control input_address"
                            name="customer_address"
+                           value="{{old('customer_address')}}"
                            placeholder="Address" required>
 
                     @if ($errors->has('customer_address'))
@@ -37,6 +40,7 @@
                     <input type="number"
                            class="form-control input_phone"
                            name="customer_phone"
+                           value="{{old('customer_phone')}}"
                            placeholder="Phone number" required>
 
                     @if ($errors->has('customer_phone'))
@@ -70,23 +74,90 @@
                         <tbody>
 
                         <?php $cartIdString = ""; ?>
+                        <?php $prevCreatorId = $param['prdItemsArr'][0]['creator_id'] ?>
+                        <?php $flat = 0 ?>
+                        <?php $totalPrice = 0 ?>
 
-                        @foreach($param['prdItemsArr'] as $order)
+                        @foreach($param['prdItemsArr'] as $key => $order)
 
                             <?php
-                                $cartIdString .= "|" . $order["cart_id"];
+                            $cartIdString .= "|" . $order["cart_id"];
                             ?>
 
-                            <tr style="margin: auto;">
+                            @if($prevCreatorId === $order['creator_id'])
 
-                                <td class="align-middle">{{ date('h:i:s A',strtotime($order["hour_update"])) }}</td>
-                                <td><img src="{{ asset('images/products/' . $order['image']) }}" class="img-thumbnail"
-                                         width="50"
-                                         height="50"></td>
-                                <td class="align-middle">{{$order["name"]}}</td>
-                                <td class="align-middle text-center" >{{$order["cart_qty"]}}</td>
-                                <td class="align-middle text-center">${{ number_format($order["price"]) }}</td>
-                            </tr>
+                                <tr style="margin: auto;">
+                                    <td class="align-middle text-center">
+                                        @if($flat === 0)
+                                            <span>{{$order['seller']}}</span>
+                                            <?php $flat = 1; ?>
+                                        @endif
+                                        <?php $totalPrice += $order["price"]?>
+                                    </td>
+                                </tr>
+                                <tr style="margin: auto;">
+
+                                    <td class="align-middle">{{ date('h:i:s A',strtotime($order["hour_update"])) }}</td>
+                                    <td><img src="{{ asset('images/products/' . $order['image']) }}"
+                                             class="img-thumbnail"
+                                             width="50"
+                                             height="50"></td>
+                                    <td class="align-middle">{{$order["name"]}}</td>
+                                    <td class="align-middle text-center">{{$order["cart_qty"]}}</td>
+                                    <td class="align-middle text-center">${{ number_format($order["price"]) }}</td>
+                                    <td class="align-middle text-center">
+                                        @if(isset($param['prdItemsArr'][$key + 1]))
+                                            @if($param['prdItemsArr'][$key + 1]['creator_id'] != $order['creator_id'])
+                                                <span>Total: {{$totalPrice}}</span>
+                                                <?php $totalPrice = 0 ?>
+                                            @endif
+
+                                        @else
+                                            <span>Total: {{$totalPrice}}</span>
+                                            <?php $totalPrice = 0 ?>
+                                        @endif
+                                    </td>
+                                </tr>
+
+                            @else
+                                    <tr style="margin: auto;">
+                                        <td class="align-middle text-center">
+                                            <span>{{$order['seller']}}</span>
+                                        </td>
+                                    </tr>
+                                <?php
+//                                if (isset($param['prdItemsArr'][$key + 1])) {
+//                                    if ($param['prdItemsArr'][$key + 1]['creator_id'] != $order['creator_id']) {
+////                                        $flat = 0;
+//
+//                                    }
+//                                }
+                                $prevCreatorId = $order['creator_id'] ?>
+                                <tr style="margin: auto;">
+
+                                    <td class="align-middle">{{ date('h:i:s A',strtotime($order["hour_update"])) }}</td>
+                                    <td><img src="{{ asset('images/products/' . $order['image']) }}"
+                                             class="img-thumbnail"
+                                             width="50"
+                                             height="50"></td>
+                                    <td class="align-middle">{{$order["name"]}} - 1</td>
+                                    <td class="align-middle text-center">{{$order["cart_qty"]}}</td>
+                                    <td class="align-middle text-center">${{ number_format($order["price"]) }}</td>
+                                    <?php $totalPrice += $order["price"]?>
+                                    <td>
+                                        @if(isset($param['prdItemsArr'][$key + 1]))
+                                            @if($param['prdItemsArr'][$key + 1]['creator_id'] != $order['creator_id'])
+                                                <span>Total-: {{$totalPrice}}</span>
+                                                <?php $totalPrice = 0 ?>
+                                            @endif
+                                        @else
+                                            <span>Total: {{$totalPrice}}</span>
+                                            <?php $totalPrice = 0 ?>
+                                        @endif
+                                    </td>
+
+                                </tr>
+                            @endif
                         @endforeach
 
                         <tr style="margin: auto;border-style:none !important; ">
@@ -106,7 +177,8 @@
                         <th>
                             <form method="post" style="margin-right: 10px" action="{{route("cart.checkout.store")}}">
                                 @csrf
-                                <input type="hidden" value="{{$cartIdString}}" class="input-cartId-hidden" name="cartid">
+                                <input type="hidden" value="{{$cartIdString}}" class="input-cartId-hidden"
+                                       name="cartid">
                                 <input type="hidden" value="" class="input-name-hidden" name="name_customer">
                                 <input type="hidden" value="" class="input-address-hidden" name="customer_address">
                                 <input type="hidden" value="" class="input-phone-hidden" name="customer_phone">
@@ -139,26 +211,26 @@
 @section("script")
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
 
             var input_name = $(".input_name");
             var input_address = $(".input_address");
             var input_phone = $(".input_phone");
             var selected_payment = $(".payment-method");
 
-            input_name.change(function(){
+            input_name.change(function () {
                 $(".input-name-hidden").val($(this).val());
             })
 
-            input_address.change(function(){
+            input_address.change(function () {
                 $(".input-address-hidden").val($(this).val());
             })
 
-            input_phone.change(function(){
+            input_phone.change(function () {
                 $(".input-phone-hidden").val($(this).val());
             })
 
-            selected_payment.change(function(){
+            selected_payment.change(function () {
                 $(".payment-hidden").val($(this).val());
             })
 

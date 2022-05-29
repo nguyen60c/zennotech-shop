@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 
 class RegisterController extends Controller
 {
+    private $user;
+    public function __construct()
+    {
+        $this->user = new User();
+    }
 
     /**
      * Display register form
@@ -24,16 +29,20 @@ class RegisterController extends Controller
      *
      * @param RegisterRequest $request
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
     public function register(RegisterRequest $request){
         $user = User::create($request->validated());
-
         auth()->login($user);
-
         $user->assignRole("user");
 
         return redirect("/")
         ->with('success', "Account successfully registered.");
+    }
+
+    public function checkPnbExist(Request $request){
+        $phoneNumber = $request['request'];
+        $isExisted = $this->user->isPhoneNumberTaken($phoneNumber);
+        return $isExisted;
     }
 }

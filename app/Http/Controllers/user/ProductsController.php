@@ -22,7 +22,7 @@ class ProductsController extends Controller
     public function index(){
         $products = Product::latest()->paginate(6);
 
-        $cartItems = Cart::select("product_id")->distinct()->get();
+        $cartItems = $this->cart->totalDistinctItems();
 
         return view("products.index",compact("products"))
             ->with(compact("cartItems"));

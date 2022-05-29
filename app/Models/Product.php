@@ -20,13 +20,8 @@ class Product extends Model
         "image"
     ];
 
-    public function cart()
-    {
-        return $this->belongsTo(Cart::class,"cart_product",
-            "cart_id","product_id");
+    public function user(){
+        return $this->belongsTo(User::class,'creator_id','id');
     }
 
-//    public function user(){
-//        return $this->belongsToMany(User::class);
-//    }
 }

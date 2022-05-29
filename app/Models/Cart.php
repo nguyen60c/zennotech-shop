@@ -18,17 +18,33 @@ class Cart extends Model
         return $this->belongsTo(User::class, "user_id", "id");
     }
 
-    public function cart(){
-        return $this->hasMany(Product::class,"product_id","id");
+    /**
+     * @return int|null
+     */
+    public function getUserId()
+    {
+        $userId = isset(auth()->user()->id) ? auth()->user()->id : 0;
+        return $userId;
     }
 
-    public function totalItems(){
+    /**
+     * @return Cart[]|\Illuminate\Database\Eloquent\Collection
+     */
+    public function totalItems()
+    {
         return Cart::all();
     }
 
-    public function totalDistinctItems(){
-        return Cart::select("product_id")->distinct()->get();
+    /**
+     * @return int
+     */
+    public function totalDistinctItems()
+    {
+        if ($this->getUserId()){
+            return Cart::select("product_id")
+                ->where('user_id', $this->getUserId())->distinct()->get();
+        }
+        return 0;
     }
-
 }
 

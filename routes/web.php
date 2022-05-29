@@ -24,8 +24,6 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
     Route::get("/show-details/{product_id}","user\ProductsController@detailsProduct")
     ->name("users.products.details");
 
-    Route::get("otp/register", [RegisterController::class,"index"]);
-
     /**
      * Guest Routes
      */
@@ -36,12 +34,18 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
          */
         Route::get("/register", "auth\RegisterController@show")->name("register.show");
         Route::post("/register", "auth\RegisterController@register")->name("register.perform");
+        Route::post("/check-exist", "auth\RegisterController@checkPnbExist")->name("register.otp.checkExist");
+
 
         /**
          * Login Routes
          */
         Route::get("/login", "auth\LoginController@show")->name("login.show");
         Route::post("/login", "auth\LoginController@login")->name("login.perform");
+        Route::get("otp/login", "auth\LoginController@phoneAuth")->name('login.opt.show');
+        Route::post('/otp/login',"auth\LoginController@isExistPhoneNumber")->name('login.otp.check');
+        Route::post("/check-otp", "auth\LoginController@loginOtp")->name("login.otp.perform");
+
     });
 
     Route::group(["middleware" => ["auth"]], function () {
@@ -58,12 +62,10 @@ Route::group(["namespace" => "App\Http\Controllers"], function () {
 //            Route::put("/update", "user\CartsController@update")->name("cart.update");
             Route::delete("/clear", "user\CartsController@clear")->name("cart.clear");
             Route::delete("/delete/{id}", "user\CartsController@destroy")->name("cart.destroy");
-            Route::post("/add-to-order-details",
-                "user\CartsController@addCartItemsToOrderDetails")->name("cart.ordersDetails.add");
+            Route::post("/order-details/add","user\CartsController@addOrdDetailsItems")->name("cart.ordersDetails.ajax.add");
             Route::post("/check-quantity","user\CartsController@checkQuantity");
             Route::get("/checkout", "user\CartsController@ChekoutPage")->name("cart.checkout.index");
             Route::post("/checkout", "user\CartsController@createOrderDetailsItem")->name("cart.checkout.store");
-            Route::get("/checkQuantityCartItem", "user\CartsController@checkQuantityCartItem")->name("cart.checkQuantityCartItem");
             Route::delete("/selected-delete", "user\CartsController@selectedDel")->name("cart.ajax.selectedDel");
             Route::delete("/clear", "user\CartsController@clear")->name("cart.ajax.clear");
             Route::post("/updateQty","user\CartsController@updateQty")->name("cart.ajax.updateQty");

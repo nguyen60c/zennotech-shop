@@ -3,23 +3,27 @@
 namespace App\Http\Controllers\user;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\traits\PermissionGateTraits;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderDetails;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Gate;
 
 class CartsController extends Controller
 {
-    private $cart;
-    private $data = array();
+    use PermissionGateTraits;
 
+    private $cart;
+    private $prod;
+    private $orderDetailsItem;
 
     public function __construct()
     {
         $this->cart = new Cart();
+        $this->prod = new Product();
         $this->orderDetailsItem = new OrderDetails();
     }
 
@@ -36,27 +40,22 @@ class CartsController extends Controller
      */
     public function index()
     {
-        abort_if(
-            Gate::denies('cart.index'),
-            Response::HTTP_FORBIDDEN,
-            '403 Forbidden'
-        );
+        $this->gateDeny('cart.index');
 
-        $cartItems = Cart::where("user_id", $this->getUserId());
-        $cartItems = $cartItems->paginate(10);
-        $listCartItems = array();
-        $userId = auth()->user()->id;
+        $_cartItems = Cart::where("user_id", $this->getUserId())
+            ->orderBy('creator_id', 'DESC')->paginate(10);
+        $cartItems = array();
+        $userId = $this->getUserId();
 
         /*Get cart items*/
-        foreach ($cartItems as $item) {
-            $productItems = Product::where("id", $item->product_id)->get()->toArray();
-
-            $productItems[0]["quantity_item"] = $item->quantity;
-            $productItems[0]["cart_id"] = $item->id;
-            $listCartItems = array_merge($listCartItems, $productItems);
+        foreach ($_cartItems as $key => $item) {
+            $prdItem = Product::where("id", $item->product_id)->first();
+            $prdItem['seller'] = Product::find($prdItem['creator_id'])->user->name;
+            $prdItem["quantity_item"] = $item->quantity;
+            $prdItem["cart_id"] = $item->id;
+            $cartItems = array_merge($cartItems, [$key => $prdItem]);
         }
-
-        return view("carts.index", compact("listCartItems"))
+        return view("carts.index", compact("cartItems"))
             ->with(compact("userId"));
     }
 
@@ -68,11 +67,7 @@ class CartsController extends Controller
      */
     public function store(Request $request)
     {
-        abort_if(
-            Gate::denies('cart.store'),
-            Response::HTTP_FORBIDDEN,
-            '403 Forbidden'
-        );
+        $this->gateDeny('cart.store');
 
         $cartItem = Cart::where("product_id", $request->productId)
             ->where("user_id", $this->getUserId());
@@ -96,11 +91,7 @@ class CartsController extends Controller
      */
     public function destroy($id)
     {
-        abort_if(
-            Gate::denies('cart.destroy'),
-            Response::HTTP_FORBIDDEN,
-            '403 Forbidden'
-        );
+        $this->gateDeny('cart.destroy');
 
         Cart::where("product_id", $id)
             ->where("user_id", $this->getUserId())
@@ -114,52 +105,30 @@ class CartsController extends Controller
      */
     public function clear(Request $request)
     {
-        abort_if(
-            Gate::denies('cart.clear'),
-            Response::HTTP_FORBIDDEN,
-            '403 Forbidden'
-        );
-
-        Cart::where("user_id", $request->id)->delete();
-        return redirect()->route("cart.index");
+        $this->gateDeny('cart.ajax.clear');
+        Cart::where('user_id', $request->id)->delete();
     }
+
 
     /*using ajax*/
     /*Add cart items to order_details after click proceed to checkout*/
-    public function addCartItemsToOrderDetails(Request $request)
+    public function addOrdDetailsItems(Request $request)
     {
-
         $cartItems = $request->all();
-
-        $flat = array();
-
-        foreach ($cartItems as $itemArr) {
-
-            foreach ($itemArr as $key => $item) {
-
-                if (isset($itemArr[$key + 1])) {
-                    if ($item["creatorId"] != $itemArr[$key + 1]["creatorId"]) {
-                        array_push($flat, false);
-                    }
-                }
-            }
-        }
+        $items = array();
 
         /*Check only seller*/
-        foreach ($cartItems as $itemArr) {
+        foreach ($cartItems['request'] as $item) {
+            $qtyProd = Product::where('id', $item['productId'])->firstOrFail()['quantity'];
+            $qtyUpd = $qtyProd >= $item["userInputQuantity"] ? $item["userInputQuantity"] : $qtyProd;
 
-            foreach ($itemArr as $key => $item) {
-
-                $qtyProd = Product::where("id", $item["productId"])->get("quantity")[0]["quantity"];
-                $qtyUpd = $item["userInputQuantity"] <= $qtyProd ? $item["userInputQuantity"] : $qtyProd;
-
-                Cart::where("id", $item["cartId"])
-                    ->where("product_id", $item["productId"])
-                    ->update(["quantity" => $qtyUpd]);
-                array_push($flat, true, $item["cartId"]);
-            }
+            Cart::where("id", $item["cartId"])
+                ->where("product_id", $item["productId"])
+                ->update(["quantity" => $qtyUpd]);
+            array_push($items, $item["cartId"]);
         }
-        return $flat;
+
+        return $items;
     }
 
 
@@ -168,11 +137,6 @@ class CartsController extends Controller
      * */
     public function createOrderDetailsItem(Request $request)
     {
-        abort_if(
-            Gate::denies('cart.clear'),
-            Response::HTTP_FORBIDDEN,
-            '403 Forbidden'
-        );
 
         $cartId = explode("|", $request->cartid);
         if ($cartId[0] === "") {
@@ -193,9 +157,7 @@ class CartsController extends Controller
                 ->orderBy("creator_id", "DESC");
 
             $cartItems = $cart->get()->toArray();
-
             $this->handleCreating($cartItems, $validation);
-
             $cart->delete();
         }
 
@@ -209,23 +171,28 @@ class CartsController extends Controller
         $cartItem = Cart::where("user_id", $this->getUserId())
             ->orderBy('updated_at', 'DESC')->first();
 
-
-        $timeCreated = 0;
         $totalPriceItems = 0;
         $prdItemsArr = array();
 
         $cartItems = Cart::where("user_id", $this->getUserId())
-            ->where("updated_at", $cartItem["updated_at"])->get()->toArray();
+            ->where("updated_at", $cartItem["updated_at"])
+            ->orderBy('creator_id', 'DESC')->get()->toArray();
+
+        $timeCreated = $cartItems[0]['created_at'];
 
         foreach ($cartItems as $key => $item) {
-            $product = Product::where("id", $item["product_id"])->get()->toArray()[0];
-            $product["cart_qty"] = $item["quantity"];
-            $product["date_update"] = date('d-m-Y', strtotime($item["created_at"]));
-            $product["hour_update"] = date('h:m:s', strtotime($item["created_at"]));
-            $product["cart_id"] = $cartItems[$key]["id"];
-            $timeCreated = $item["created_at"];
-            $totalPriceItems += $item["quantity"] * $product["price"];
-            array_push($prdItemsArr, (array)$product);
+            $prod = Product::where('id',$item['product_id'])->first()->toArray();
+            $seller = Product::find($item['creator_id'])->user->name;
+            $prod = array_merge(
+                $prod,
+                ['seller' => $seller],
+                ['cart_qty' => $item['quantity']],
+                ['date_update' => date('d-m-Y', strtotime($item["created_at"]))],
+                ['hour_update' => date('h:m:s', strtotime($item["created_at"]))],
+                ['cart_id' => $cartItems[$key]["id"]]
+            );
+            $totalPriceItems += $item["quantity"] * $prod["price"];
+            array_push($prdItemsArr, $prod);
         }
 
         $cartItems = $this->cart->totalDistinctItems();
@@ -247,16 +214,15 @@ class CartsController extends Controller
     public function updateQty(Request $request)
     {
 
-        $cartItem = Cart::where("id", $request->cart_id)->get()->toArray()[0];
+        $cartItem = Cart::where("id", $request->cart_id)->first();
         $productItem = Product::where("id", $cartItem["product_id"])->first()->toArray();
 
-        if ($request->quantity < 0 || $request->quantity === "") {
+        if ($request->quantity < 0 || $request->quantity === "")
             return [
                 "price" => $productItem["price"],
                 "qty" => $productItem["quantity"],
                 "msg" => "Your quantity is invalid"
             ];
-        }
 
         if ($request->quantity <= $productItem["quantity"]
             && $productItem["quantity"] > 0) {
@@ -276,28 +242,6 @@ class CartsController extends Controller
         }
 
     }
-
-
-    /*Using with ajax*/
-    public function checkQuantityCartItem()
-    {
-        $cart_item_list = Cart::where("user_id", $this->getUserId())->get()->toArray();
-
-        $data = array();
-
-        foreach ($cart_item_list as $key => $item) {
-
-            $product_item = Product::select("quantity", "price", "id", "creator_id")
-                ->where("id", $item["product_id"])->get()->toArray()[0];
-
-            $product_item["cart_id"] = $item["id"];
-
-            $data = array_merge($data, [$key => $product_item]);
-        }
-
-        return $data;
-    }
-
 
     /*
      * @param Cart $cart_items
@@ -358,21 +302,19 @@ class CartsController extends Controller
     public function selectedDel(Request $request)
     {
         foreach ($request["array"] as $item) {
-            $cartDel = Cart::where("id",$item);
+            $cartDel = Cart::where("id", $item);
             $cartDel->delete();
         }
     }
 
 
-    /*
-     * @param Array $is_exist_cart_item
-     * @param Cart $cart_items_db
-     * @param int $id
+    /**
+     * @param $cartItems
+     * @param $prdItemId
      *
-     * @return Illuminate\Routing\Redirector
+     * @return string
      */
-    public
-    function createCartItem($cartItems, $prdItemId)
+    public function createCartItem($cartItems, $prdItemId)
     {
 
         $msg = "";
@@ -385,8 +327,7 @@ class CartsController extends Controller
             $prodItem = Product::where("id", $prdItemId)->get()->toArray()[0];
 
             if ($prodItem["quantity"] >= $cartItem["quantity"] + 1) {
-                $cartItems->update(["quantity" =>
-                    $cartItem["quantity"] + 1]);
+                $cartItems->update(["quantity" => $cartItem["quantity"] + 1]);
                 $msg = "Product has already been in cart. Plus cart item successfully";
 
             } else if ($prodItem["quantity"] < $cartItem["quantity"] + 1) {
@@ -413,7 +354,14 @@ class CartsController extends Controller
         return $msg;
     }
 
-    public function addCrtItem($prdItem, $prdItemId){
+    /**
+     * Handle add product item to cart in home page
+     *
+     * @param $prdItem
+     * @param $prdItemId
+     */
+    public function addCrtItem($prdItem, $prdItemId)
+    {
         Cart::create([
             'user_id' => $this->getUserId(),
             'product_id' => $prdItemId,
@@ -423,32 +371,13 @@ class CartsController extends Controller
         ]);
     }
 
-    public function checkQuantity(Request $request)
-    {
 
-        $input = $request->all();
-
-        $updatingProduct = array();
-
-        foreach ($input as $item) {
-            $productItem = Product::where("name", $item[1])->get()->toArray()[0];
-
-            if ($productItem["quantity"] >= $item[0]
-                && $item[0] > 0
-                && $item[0] !== "") {
-                array_push($updatingProduct, 0, $productItem["quantity"]);
-                return $updatingProduct;
-
-            } else if ($productItem["quantity"] < $item[0]
-                || $item[0] <= 0) {
-                array_push($updatingProduct, 1, $productItem["quantity"]);
-                return $updatingProduct;
-            }
-        }
-
-        return $input;
-    }
-
+    /**
+     * Handle removing specified item
+     *
+     * @param Request $request
+     * @return mixed
+     */
     public function delCartItem(Request $request)
     {
 
